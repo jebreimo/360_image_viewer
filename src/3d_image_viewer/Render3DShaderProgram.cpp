@@ -21,9 +21,10 @@ void Render3DShaderProgram::setup()
     use_program(program);
 
     position = get_vertex_attribute(program, "a_position");
-    textureCoord = get_vertex_attribute(program, "a_texture_coord");
+    texture_coord = get_vertex_attribute(program, "a_texture_coord");
 
-    transformation = get_uniform<Xyz::Matrix3F>(program, "u_transformation");
+    mv_matrix = get_uniform<Xyz::Matrix4F>(program, "u_mv_matrix");
+    p_matrix = get_uniform<Xyz::Matrix4F>(program, "u_p_matrix");
+
     texture = get_uniform<GLint>(program, "u_texture");
-    z = get_uniform<GLfloat>(program, "u_z");
 }

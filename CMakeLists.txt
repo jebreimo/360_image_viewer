@@ -23,7 +23,7 @@ add_executable(3d_image_viewer
     src/3d_image_viewer/Render3DShaderProgram.cpp
     src/3d_image_viewer/Render3DShaderProgram.hpp
     src/3d_image_viewer/main.cpp
-    )
+    src/3d_image_viewer/ObjFileWriter.cpp src/3d_image_viewer/ObjFileWriter.hpp)
 
 target_link_libraries(3d_image_viewer
     PRIVATE

@@ -15,10 +15,10 @@ public:
 
     Tungsten::ProgramHandle program;
 
-    Tungsten::Uniform<Xyz::Matrix3F> transformation;
+    Tungsten::Uniform<Xyz::Matrix4F> mv_matrix;
+    Tungsten::Uniform<Xyz::Matrix4F> p_matrix;
     Tungsten::Uniform<GLint> texture;
-    Tungsten::Uniform<GLfloat> z;
 
     GLuint position;
-    GLuint textureCoord;
+    GLuint texture_coord;
 };
