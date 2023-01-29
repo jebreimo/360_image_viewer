@@ -11,6 +11,8 @@
 #include <Yimage/Yimage.hpp>
 #include "ObjFileWriter.hpp"
 #include "Render3DShaderProgram.hpp"
+#include "SpherePosCalculator.hpp"
+#include "Debug.hpp"
 
 struct Vertex
 {
@@ -125,11 +127,14 @@ class ImageViewer : public Tungsten::EventLoop
 public:
     explicit ImageViewer(yimage::Image img)
         : img_(std::move(img))
-    {}
+    {
+        pos_calculator_.set_view_angle(Xyz::to_radians(scale_));
+        pos_calculator_.set_eye_dist(0.5);
+    }
 
     void on_startup(Tungsten::SdlApplication& app) override
     {
-        auto array = make_sphere(3, 128);
+        auto array = make_sphere(10, 64);
         write(std::cout, array);
         vertex_array_ = Tungsten::generate_vertex_array();
         Tungsten::bind_vertex_array(vertex_array_);
@@ -173,7 +178,19 @@ public:
 
     bool on_event(Tungsten::SdlApplication& app, const SDL_Event& event) override
     {
-        return EventLoop::on_event(app, event);
+        switch (event.type)
+        {
+        case SDL_MOUSEWHEEL:
+            return on_mouse_wheel(app, event);
+        case SDL_MOUSEMOTION:
+            return on_mouse_motion(app, event);
+        case SDL_MOUSEBUTTONDOWN:
+            return on_mouse_button_down(app, event);
+        case SDL_MOUSEBUTTONUP:
+            return on_mouse_button_up(app, event);
+        default:
+            return false;
+        }
     }
 
     void on_draw(Tungsten::SdlApplication& app) override
@@ -185,25 +202,116 @@ public:
         Tungsten::draw_elements(GL_TRIANGLES, count_, GL_UNSIGNED_SHORT);
     }
 private:
+    bool on_mouse_wheel(const Tungsten::SdlApplication& app,
+                        const SDL_Event& event)
+    {
+        if (event.wheel.y > 0)
+            scale_ += 4;
+        else
+            scale_ -= 4;
+
+        if (scale_ > 120)
+            scale_ = 120;
+        else if (scale_ < 8)
+            scale_ = 4;
+
+        pos_calculator_.set_view_angle(Xyz::to_radians(scale_));
+        JEB_SHOW(scale_);
+        return true;
+    }
+
+    bool on_mouse_motion(const Tungsten::SdlApplication& app,
+                         const SDL_Event& event)
+    {
+        auto [w, h] = app.window_size();
+        Xyz::Vector2D new_mouse_pos(
+            2.0 * event.motion.x / double(w) - 1,
+            2.0 * (h - event.motion.y) / double(h) - 1);
+
+        if (is_panning_)
+        {
+            pos_calculator_.set_fixed_point(new_mouse_pos,
+                                            pos_calculator_.fixed_point().second);
+        }
+
+        mouse_pos_ = new_mouse_pos;
+        return true;
+    }
+
+    bool on_mouse_button_down(const Tungsten::SdlApplication& app,
+                              const SDL_Event& event)
+    {
+        if (event.button.button == SDL_BUTTON_LEFT)
+        {
+            is_panning_ = true;
+            pos_calculator_.set_fixed_point(
+                mouse_pos_,
+                pos_calculator_.calc_sphere_pos(mouse_pos_));
+        }
+        else if (event.button.button == SDL_BUTTON_RIGHT)
+        {
+            auto pos = pos_calculator_.calc_sphere_pos(mouse_pos_);
+            std::clog << mouse_pos_ << " -> "
+                      << Xyz::to_degrees(pos.azimuth) << ", "
+                      << Xyz::to_degrees(pos.polar) << "\n";
+            pos = Xyz::to_spherical(pos_calculator_.calc_center_pos());
+            std::clog << "  center: "
+                      << Xyz::to_degrees(pos.azimuth) << ", "
+                      << Xyz::to_degrees(pos.polar) << "\n";
+        }
+        return true;
+    }
+
+    bool on_mouse_button_up(const Tungsten::SdlApplication& app,
+                            const SDL_Event& event)
+    {
+        if (event.button.button == SDL_BUTTON_LEFT)
+            is_panning_ = false;
+        return true;
+    }
+
     Xyz::Matrix4F get_mv_matrix(const Tungsten::SdlApplication& app)
     {
-        return Xyz::make_look_at_matrix<float>({0.f, 0.f, 0.f},
-                                               {0.f, -1.f, 0.f},
-                                               {0.f, 0.f, 1.f})
-               * Xyz::scale4(4.f, 4.f, 4.f);
+        auto [w, h] = app.window_size();
+        pos_calculator_.set_screen_res({double(w), double(h)});
+        auto eye_vec = Xyz::vector_cast<float>(pos_calculator_.calc_eye_pos());
+        auto center_vec = Xyz::vector_cast<float>(pos_calculator_.calc_center_pos());
+        auto up_vec = Xyz::vector_cast<float>(pos_calculator_.calc_up_vector());
+
+        return Xyz::make_look_at_matrix(eye_vec, center_vec, up_vec);
     }
 
     Xyz::Matrix4F get_p_matrix(const Tungsten::SdlApplication& app)
     {
-        return Xyz::make_frustum_matrix<float>(-2, 2, -2, 2, 1, 10);
+        auto [w, h] = app.window_size();
+        float x, y;
+        if (w > h)
+        {
+            x = float(w) / float(h);
+            y = 1.0;
+        }
+        else
+        {
+            x = 1.0;
+            y = float(h) / float(w);
+        }
+
+        float angle = 0.5f * Xyz::to_radians(float(scale_));
+        float size = 0.5f * sin(angle) / pow(cos(angle) + 0.5f, 2.f);
+        return Xyz::make_frustum_matrix<float>(-size * x, size * x, -size * y, size * y, 0.5f, 10);
     }
 
     unsigned count_ = 0;
+    int scale_ = 40;
+    Xyz::SphericalPointD center_pos_;
+    Xyz::Vector2D mouse_pos_;
     yimage::Image img_;
     std::vector<Tungsten::BufferHandle> buffers_;
     Tungsten::VertexArrayHandle vertex_array_;
     Tungsten::TextureHandle texture_;
     Render3DShaderProgram program_;
+    SpherePosCalculator pos_calculator_;
+    bool is_panning_ = false;
 };
 
 int main(int argc, char* argv[])
@@ -211,7 +319,7 @@ int main(int argc, char* argv[])
     try
     {
         argos::ArgumentParser parser(argv[0]);
-        parser.add(argos::Argument("IMAGE")
+        parser.add(argos::Arg("IMAGE")
                        .help("An image file (PNG or JPEG)."));
         Tungsten::SdlApplication::add_command_line_options(parser);
         auto args = parser.parse(argc, argv);
