@@ -30,6 +30,8 @@ add_executable(3d_image_viewer
     src/3d_image_viewer/Render3DShaderProgram.hpp
     src/3d_image_viewer/SpherePosCalculator.cpp
     src/3d_image_viewer/SpherePosCalculator.hpp
+    src/3d_image_viewer/YimageGl.cpp
+    src/3d_image_viewer/YimageGl.hpp
     )
 
 target_link_libraries(3d_image_viewer

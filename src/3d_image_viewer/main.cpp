@@ -12,6 +12,7 @@
 #include "ObjFileWriter.hpp"
 #include "Render3DShaderProgram.hpp"
 #include "SpherePosCalculator.hpp"
+#include "YimageGl.hpp"
 #include "Debug.hpp"
 
 struct Vertex
@@ -90,36 +91,6 @@ void write(std::ostream& os, Tungsten::ArrayBuffer<Vertex>& buffer)
         }
         writer.end_face();
     }
-}
-
-std::pair<int, int> get_ogl_pixel_type(yimage::PixelType type)
-{
-    switch (type)
-    {
-    case yimage::PixelType::MONO_8:
-        return {GL_RED, GL_UNSIGNED_BYTE};
-    case yimage::PixelType::MONO_ALPHA_8:
-        return {GL_RG, GL_UNSIGNED_BYTE};
-    case yimage::PixelType::RGB_8:
-        return {GL_RGB, GL_UNSIGNED_BYTE};
-    case yimage::PixelType::RGBA_8:
-        return {GL_RGBA, GL_UNSIGNED_BYTE};
-    case yimage::PixelType::MONO_1:
-    case yimage::PixelType::MONO_2:
-    case yimage::PixelType::MONO_4:
-    case yimage::PixelType::MONO_16:
-    case yimage::PixelType::ALPHA_MONO_8:
-    case yimage::PixelType::ALPHA_MONO_16:
-    case yimage::PixelType::MONO_ALPHA_16:
-    case yimage::PixelType::RGB_16:
-    case yimage::PixelType::ARGB_8:
-    case yimage::PixelType::ARGB_16:
-    case yimage::PixelType::RGBA_16:
-    default:
-        break;
-    }
-    throw std::runtime_error("GLES has no corresponding pixel format: "
-                             + std::to_string(int(type)));
 }
 
 class ImageViewer : public Tungsten::EventLoop
