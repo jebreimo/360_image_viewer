@@ -187,6 +187,7 @@ private:
 
         pos_calculator_.set_view_angle(Xyz::to_radians(scale_));
         JEB_SHOW(scale_);
+        redraw();
         return true;
     }
 
@@ -202,6 +203,7 @@ private:
         {
             pos_calculator_.set_fixed_point(new_mouse_pos,
                                             pos_calculator_.fixed_point().second);
+            redraw();
         }
 
         mouse_pos_ = new_mouse_pos;
@@ -298,6 +300,7 @@ int main(int argc, char* argv[])
         auto event_loop = std::make_unique<ImageViewer>(
             yimage::read_image(args.value("IMAGE").as_string()));
         Tungsten::SdlApplication app("ShowPng", std::move(event_loop));
+        app.set_event_loop_mode(Tungsten::EventLoopMode::WAIT_FOR_EVENTS);
         app.read_command_line_options(args);
         app.run();
     }

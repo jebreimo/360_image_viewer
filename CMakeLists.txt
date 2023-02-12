@@ -9,7 +9,7 @@ FetchContent_Declare(argos
     GIT_TAG v1.1.269)
 FetchContent_Declare(tungsten
     GIT_REPOSITORY "https://github.com/jebreimo/Tungsten.git"
-    GIT_TAG v0.2.75)
+    GIT_TAG v0.2.76)
 FetchContent_Declare(yimage
     GIT_REPOSITORY "https://github.com/jebreimo/Yimage.git"
     GIT_TAG v0.1.1)
