@@ -13,7 +13,7 @@
 
 struct FaceIndex
 {
-    int vertex;
+    int vertex = 0;
     int texture = -1;
     int normal = -1;
 };
@@ -23,8 +23,9 @@ class ObjFileWriter
 public:
     ObjFileWriter();
 
-    ObjFileWriter(std::ostream& stream);
+    explicit ObjFileWriter(std::ostream& stream);
 
+    [[nodiscard]]
     std::ostream& stream() const;
 
     ObjFileWriter& write_vertex(const Xyz::Vector3F& v);
@@ -37,6 +38,5 @@ public:
 
     ObjFileWriter& end_face();
 private:
-    std::unique_ptr<std::ostream> stream_ptr_;
     std::ostream* stream_;
 };

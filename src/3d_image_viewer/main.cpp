@@ -40,7 +40,6 @@ Tungsten::ArrayBuffer<Vertex> make_sphere(int circles, int points)
         const float angle = 0.5f * (-1.f + float(2 * i + 1) / float(circles)) * PI;
         pos_z_values.push_back(sin(angle));
         z_factors.push_back(cos(angle));
-        //tex_y_values.push_back(1.f - 0.5f * (1 + sin(angle)));
         tex_y_values.push_back(1.f - (float(i) + 0.5f) / float(circles));
     }
 
@@ -241,6 +240,7 @@ private:
         return true;
     }
 
+    [[nodiscard]]
     Xyz::Matrix4F get_mv_matrix(const Tungsten::SdlApplication& app)
     {
         auto [w, h] = app.window_size();
@@ -252,7 +252,8 @@ private:
         return Xyz::make_look_at_matrix(eye_vec, center_vec, up_vec);
     }
 
-    Xyz::Matrix4F get_p_matrix(const Tungsten::SdlApplication& app)
+    [[nodiscard]]
+    Xyz::Matrix4F get_p_matrix(const Tungsten::SdlApplication& app) const
     {
         auto [w, h] = app.window_size();
         float x, y;

@@ -26,8 +26,7 @@ namespace
 }
 
 ObjFileWriter::ObjFileWriter()
-    : stream_ptr_(std::make_unique<std::stringstream>()),
-      stream_(&std::cout)
+    : stream_(&std::cout)
 {}
 
 ObjFileWriter::ObjFileWriter(std::ostream& stream)
