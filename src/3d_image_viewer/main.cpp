@@ -104,21 +104,24 @@ public:
 
     void on_startup(Tungsten::SdlApplication& app) override
     {
-        auto array = make_sphere(10, 64);
+        auto array = make_sphere(16, 64);
         write(std::cout, array);
         vertex_array_ = Tungsten::generate_vertex_array();
         Tungsten::bind_vertex_array(vertex_array_);
 
-        auto [vertexes, vertexes_size] = array.array_buffer();
-        auto [indexes, index_size] = array.index_buffer();
-        count_ = index_size;
         buffers_ = Tungsten::generate_buffers(2);
+
+        auto [vertexes, vertexes_size] = array.array_buffer();
         Tungsten::bind_buffer(GL_ARRAY_BUFFER, buffers_[0]);
         Tungsten::set_buffer_data(GL_ARRAY_BUFFER, vertexes_size,
                                   vertexes, GL_STATIC_DRAW);
+
+        auto [indexes, index_size] = array.index_buffer();
         Tungsten::bind_buffer(GL_ELEMENT_ARRAY_BUFFER, buffers_[1]);
         Tungsten::set_buffer_data(GL_ELEMENT_ARRAY_BUFFER, index_size,
                                   indexes, GL_STATIC_DRAW);
+
+        count_ = array.indexes.size();
 
         texture_ = Tungsten::generate_texture();
         Tungsten::bind_texture(GL_TEXTURE_2D, texture_);
