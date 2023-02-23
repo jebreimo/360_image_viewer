@@ -48,7 +48,7 @@ Tungsten::ArrayBuffer<Vertex> make_sphere(int circles, int points)
         const float angle = (float(i) * 2.f / float(points) - 0.5f) * PI;
         const float pos_x =  cos(angle);
         const float pos_y =  sin(angle);
-        const float tex_x = float(i) / float(points);
+        const float tex_x = 1.0f - float(i) / float(points);
         for (int j = 0; j < circles; ++j)
         {
             builder.add_vertex({.pos = {pos_x * z_factors[j],
@@ -60,6 +60,21 @@ Tungsten::ArrayBuffer<Vertex> make_sphere(int circles, int points)
 
     for (int i = 0; i < points; ++i)
     {
+        const float tex_x = 1.0f - (float(i) + 0.5f) / float(points);
+        builder.add_vertex({.pos = {0, 0, -1}, .tex = {tex_x, 1.0}});
+    }
+
+    for (int i = 0; i < points; ++i)
+    {
+        const float tex_x = 1.0f - (float(i) + 0.5f) / float(points);
+        builder.add_vertex({.pos = {0, 0, 1}, .tex = {tex_x, 0.0}});
+    }
+
+    for (int i = 0; i < points; ++i)
+        builder.add_indexes(i * circles, (i + 1) * circles, i + (circles * (points + 1)));
+
+    for (int i = 0; i < points; ++i)
+    {
         for (int j = 0; j < circles - 1; ++j)
         {
             const auto n = uint16_t(i * circles + j);
@@ -67,6 +82,9 @@ Tungsten::ArrayBuffer<Vertex> make_sphere(int circles, int points)
             builder.add_indexes(n, n + circles + 1, n + circles);
         }
     }
+
+    for (int i = 0; i < points; ++i)
+        builder.add_indexes((i + 2) * circles - 1, (i + 1) * circles - 1, i + ((circles + 1) * (points + 1)) - 1);
 
     return result;
 }
