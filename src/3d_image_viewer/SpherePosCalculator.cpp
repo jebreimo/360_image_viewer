@@ -35,17 +35,13 @@ namespace
             ver_view_angle = vp.view_angle;
         }
 
-        auto hor_far_side = sin(hor_view_angle / 2);
-        auto hor_near_side = cos(hor_view_angle / 2);
-        auto screen_width = hor_far_side * vp.eye_dist
-                            / (vp.eye_dist + hor_near_side);
+        auto calc_size = [&vp](double angle)
+        {
+            return sin(angle / 2) * vp.eye_dist
+                   / (vp.eye_dist + cos(angle / 2));
+        };
 
-        auto ver_far_side = sin(ver_view_angle / 2);
-        auto ver_near_side = cos(ver_view_angle / 2);
-        auto screen_height = ver_far_side * vp.eye_dist
-                             / (vp.eye_dist + ver_near_side);
-
-        return {screen_width, screen_height};
+        return {calc_size(hor_view_angle), calc_size(ver_view_angle)};
     }
 
     [[nodiscard]]
@@ -96,8 +92,7 @@ namespace
         auto radius = sqrt(x * x + z * z);
         auto phi0 = atan(z / x);
         auto sin_phi = sin(fixed_sphere_pos.polar) / radius;
-        if (abs(sin_phi) > 1)
-            throw std::runtime_error("Illegal combination of sphere and screen coordinates.");
+        sin_phi = Xyz::clamp(sin_phi, -1.0, 1.0);
         auto phi = asin(sin_phi) - phi0;
         auto sp = to_cartesian(fixed_sphere_pos);
         auto theta = get_ccw_angle(Xyz::Vector2D(x * cos(phi + phi0), y),
