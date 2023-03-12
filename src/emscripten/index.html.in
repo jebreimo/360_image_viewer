@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>@EMSCRIPTEN_TARGET_NAME@</title>
+    <link rel="stylesheet" href="index.css">
+  </head>
+  <body>
+    <canvas class="main" id="canvas"></canvas>
+    <div class="top">
+      <div class="box">
+        <p class="footer">Running Spheres</p>
+      </div>
+    </div>
+    <script type='text/javascript'>
+      var Module = {
+        canvas: (function () {
+          return document.getElementById('canvas');
+        })()
+      };
+    </script>
+    <script src="@EMSCRIPTEN_TARGET_NAME@.js"></script>
+  </body>
+</html>

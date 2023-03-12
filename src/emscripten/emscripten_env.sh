@@ -1,0 +1,24 @@
+#LLVM_LINK=/usr/local/opt/emscripten/libexec/llvm/bin/llvm-link
+#LLVM_AR=/usr/local/opt/emscripten/libexec/llvm/bin/llvm-ar
+#LLVM_DWP=/usr/local/opt/emscripten/libexec/llvm/bin/llvm-dwp
+#LLVM_RANLIB=/usr/local/opt/emscripten/libexec/llvm/bin/llvm-ranlib
+#LLVM_OPT=/usr/local/opt/emscripten/libexec/llvm/bin/opt
+#LLVM_NM=/usr/local/opt/emscripten/libexec/llvm/bin/llvm-nm
+#LLVM_MC=/usr/local/opt/emscripten/libexec/llvm/bin/llvm-mc
+#LLVM_INTERPRETER=/usr/local/opt/emscripten/libexec/llvm/bin/lli
+#LLVM_COMPILER=/usr/local/opt/emscripten/libexec/llvm/bin/llc
+#LLVM_DWARFDUMP=/usr/local/opt/emscripten/libexec/llvm/bin/llvm-dwarfdump
+#LLVM_OBJCOPY=/usr/local/opt/emscripten/libexec/llvm/bin/llvm-objcopy
+#LLVM_STRIP=/usr/local/opt/emscripten/libexec/llvm/bin/llvm-strip
+export CC=/usr/local/Cellar/emscripten/3.1.32/libexec/emcc
+export CXX=/usr/local/Cellar/emscripten/3.1.32/libexec/em++
+export AR=/usr/local/Cellar/emscripten/3.1.32/libexec/emar
+export LD=/usr/local/opt/emscripten/libexec/llvm/bin/wasm-ld
+export NM=/usr/local/Cellar/emscripten/3.1.32/libexec/emnm
+export RANLIB=/usr/local/Cellar/emscripten/3.1.32/libexec/emranlib
+export LLVM_ROOT=/usr/local/opt/emscripten/libexec/llvm
+
+#EMCMAKE=/usr/local/Cellar/emscripten/3.1.32/libexec/emcmake
+#EMCONFIGURE=/usr/local/Cellar/emscripten/3.1.32/libexec/emconfigure
+#FILE_PACKAGER=/usr/local/Cellar/emscripten/3.1.32/libexec/tools/file_packager
+#WASM_SOURCEMAP=/usr/local/Cellar/emscripten/3.1.32/libexec/tools/wasm-sourcemap

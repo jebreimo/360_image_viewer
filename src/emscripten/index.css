@@ -1,0 +1,37 @@
+html {
+    height: 100%;
+}
+
+body {
+    font: 14px "Century Gothic", Futura, sans-serif;
+    margin: 30px;
+    background-color: #BAC9B9;
+    height: 100%;
+    overflow: hidden;
+}
+
+.top .box {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+}
+
+.top .box {
+    display: flex;
+    flex-flow: column;
+}
+
+.top .box .footer {
+    flex: 1 1 auto;
+    color: white;
+}
+
+.main {
+    position: absolute;
+    display: block;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 100%;
+    z-index: -1;
+}
