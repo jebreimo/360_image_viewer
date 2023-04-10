@@ -5,6 +5,7 @@ This script reads a C++ file and replaces all #embed directives it finds with th
 ## Example:
 
 The input file, `pdf_data.cpp.in`:
+
 ```c++
 namespace foo
 {
@@ -12,12 +13,16 @@ namespace foo
 }
 ```
 
+is stored in the same folder as a PDF file named `stairs.pdf`.
+
 Running the command:
+
 ```
-$ cppembed image.cpp.in > pdf_data.cpp
+$ cppembed pdf_data.cpp.in -o pdf_data.cpp
 ```
 
-Results in the output file, `pdf_data.cpp`:
+results in the output file `pdf_data.cpp`:
+
 ```c++
 namespace foo
 {
@@ -48,8 +53,9 @@ optional arguments:
   -h, --help            show this help message and exit
   --stdin               Read input from stdin instead of [FILE].
   -w COLS, --width COLS
-                        Set the line width. Defaults to 78.
+                        Set the line width. Default is 78.
   -i PATH, --include PATH
                         Add PATH to the list of paths where the program will look for the embedded files.
-
+  -o PATH, --output PATH
+                        Set the name of the output file. Default is stdout.
 ```

@@ -19,8 +19,10 @@ FetchContent_Declare(xyz
 FetchContent_MakeAvailable(argos tungsten yimage xyz)
 
 list(APPEND CMAKE_MODULE_PATH ${tungsten_SOURCE_DIR}/tools/cmake)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/tools/cppembed)
 
 include(TungstenTargetEmbedShaders)
+include(TargetEmbedCppData)
 
 add_executable(3d_image_viewer
     src/3d_image_viewer/main.cpp
@@ -49,6 +51,13 @@ tungsten_target_embed_shaders(3d_image_viewer
         src/3d_image_viewer/Render3D-vert.glsl
         src/3d_image_viewer/Unicolor3D-frag.glsl
         src/3d_image_viewer/Unicolor3D-vert.glsl
+    )
+
+target_embed_cpp_data(3d_image_viewer
+    INCLUDE_DIRS
+        data
+    FILES
+        src/3d_image_viewer/DefaultImage.hpp.in
     )
 
 if (EMSCRIPTEN)

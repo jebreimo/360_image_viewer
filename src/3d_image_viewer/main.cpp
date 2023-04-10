@@ -9,6 +9,7 @@
 #include <Argos/Argos.hpp>
 #include <Tungsten/Tungsten.hpp>
 #include <Yimage/Yimage.hpp>
+#include "DefaultImage.hpp"
 #include "ObjFileWriter.hpp"
 #include "Render3DShaderProgram.hpp"
 #include "Unicolor3DShaderProgram.hpp"
@@ -370,11 +371,16 @@ int main(int argc, char* argv[])
     {
         argos::ArgumentParser parser(argv[0]);
         parser.add(argos::Arg("IMAGE")
+                       .optional(true)
                        .help("An image file (PNG or JPEG)."));
         Tungsten::SdlApplication::add_command_line_options(parser);
         auto args = parser.parse(argc, argv);
-        auto event_loop = std::make_unique<ImageViewer>(
-            yimage::read_image(args.value("IMAGE").as_string()));
+        yimage::Image img;
+        if (auto img_arg = args.value("IMAGE"))
+            img = yimage::read_image(img_arg.as_string());
+        else
+            img = yimage::read_jpeg(DEFAULT_IMAGE, std::size(DEFAULT_IMAGE) - 1);
+        auto event_loop = std::make_unique<ImageViewer>(img);
         Tungsten::SdlApplication app("ShowPng", std::move(event_loop));
         app.set_event_loop_mode(Tungsten::EventLoopMode::WAIT_FOR_EVENTS);
         app.read_command_line_options(args);
