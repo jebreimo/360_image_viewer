@@ -10,28 +10,12 @@ body {
     overflow: hidden;
 }
 
-.top .box {
-    position: absolute;
-    height: 100%;
-    width: 100%;
-}
-
-.top .box {
-    display: flex;
-    flex-flow: column;
-}
-
-.top .box .footer {
-    flex: 1 1 auto;
-    color: white;
-}
-
-.main {
+.emscripten {
     position: absolute;
     display: block;
     left: 0;
     top: 0;
     height: 100%;
     width: 100%;
-    z-index: -1;
+    z-index: 1;
 }

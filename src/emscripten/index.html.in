@@ -7,12 +7,7 @@
     <link rel="stylesheet" href="index.css">
   </head>
   <body>
-    <canvas class="main" id="canvas"></canvas>
-    <div class="top">
-      <div class="box">
-        <p class="footer">Running @EMSCRIPTEN_TARGET_NAME@</p>
-      </div>
-    </div>
+    <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
     <script type='text/javascript'>
       var Module = {
         canvas: (function () {

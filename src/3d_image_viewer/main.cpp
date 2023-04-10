@@ -188,12 +188,14 @@ public:
                                        int(img_.width()), int(img_.height()),
                                        format, type,
                                        img_.data());
+        JEB_CHECKPOINT();
         img_ = {};
 
         Tungsten::set_texture_min_filter(GL_TEXTURE_2D, GL_LINEAR);
         Tungsten::set_texture_mag_filter(GL_TEXTURE_2D, GL_LINEAR);
         Tungsten::set_texture_parameter(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         Tungsten::set_texture_parameter(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        JEB_CHECKPOINT();
 
         program_.setup();
         Tungsten::use_program(program_.program);
@@ -211,6 +213,7 @@ public:
         Tungsten::define_vertex_attribute_pointer(
             line_program_.position, 3, GL_FLOAT, false, 5 * sizeof(float), 0);
         Tungsten::enable_vertex_attribute(line_program_.position);
+        JEB_CHECKPOINT();
     }
 
     bool on_event(Tungsten::SdlApplication& app, const SDL_Event& event) override
@@ -225,6 +228,8 @@ public:
             return on_mouse_button_down(app, event);
         case SDL_MOUSEBUTTONUP:
             return on_mouse_button_up(app, event);
+        case SDL_KEYDOWN:
+            return on_key_down(app, event);
         default:
             return false;
         }
@@ -290,6 +295,7 @@ private:
     {
         if (event.button.button == SDL_BUTTON_LEFT)
         {
+            JEB_CHECKPOINT();
             is_panning_ = true;
             pos_calculator_.set_fixed_point(
                 mouse_pos_,
@@ -297,6 +303,7 @@ private:
         }
         else if (event.button.button == SDL_BUTTON_RIGHT)
         {
+            JEB_CHECKPOINT();
             auto pos = pos_calculator_.calc_sphere_pos(mouse_pos_);
             std::clog << mouse_pos_ << " -> "
                       << Xyz::to_degrees(pos.azimuth) << ", "
@@ -315,6 +322,16 @@ private:
         if (event.button.button == SDL_BUTTON_LEFT)
             is_panning_ = false;
         return true;
+    }
+
+    bool on_key_down(const Tungsten::SdlApplication& app,
+                     const SDL_Event& event)
+    {
+        if (event.key.repeat)
+            return true;
+
+        JEB_SHOW(event.key.keysym.sym);
+        return false;
     }
 
     [[nodiscard]]
