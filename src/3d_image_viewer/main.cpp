@@ -244,10 +244,13 @@ public:
         program_.p_matrix.set(p_matrix);
         Tungsten::draw_triangles16( count_, 0);
 
-        Tungsten::use_program(line_program_.program);
-        line_program_.mv_matrix.set(mv_matrix);
-        line_program_.p_matrix.set(p_matrix);
-        Tungsten::draw_lines16( line_count_, count_);
+        if (show_mesh_)
+        {
+            Tungsten::use_program(line_program_.program);
+            line_program_.mv_matrix.set(mv_matrix);
+            line_program_.p_matrix.set(p_matrix);
+            Tungsten::draw_lines16( line_count_, count_);
+        }
     }
 private:
     bool on_mouse_wheel(const Tungsten::SdlApplication& app,
@@ -325,7 +328,12 @@ private:
         if (event.key.repeat)
             return true;
 
-        JEB_SHOW(event.key.keysym.sym);
+        if (event.key.keysym.sym == SDLK_m)
+        {
+            show_mesh_ = !show_mesh_;
+            redraw();
+            return true;
+        }
         return false;
     }
 
@@ -375,6 +383,7 @@ private:
     Unicolor3DShaderProgram line_program_;
     SpherePosCalculator pos_calculator_;
     bool is_panning_ = false;
+    bool show_mesh_ = false;
 };
 
 int main(int argc, char* argv[])
