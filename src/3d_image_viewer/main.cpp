@@ -111,32 +111,34 @@ void write(std::ostream& os, Tungsten::ArrayBuffer<Vertex>& buffer)
     }
 }
 
-std::vector<uint16_t> make_line_index_buffer(const std::vector<uint16_t>& indexes)
+void triangle_indexes_to_lines(const uint16_t* indexes,
+                               size_t count,
+                               std::vector<uint16_t>& result)
 {
-    std::vector<uint16_t> result;
-    result.reserve(indexes.size() * 2);
-    for (size_t i = 0; i + 2 < indexes.size(); i += 3)
+    if (count % 3 != 0)
     {
-        auto [a, b] = std::minmax(indexes[i], indexes[i + 1]);
-        result.push_back(a);
-        result.push_back(b);
-        auto [c, d] = std::minmax(indexes[i + 1], indexes[i + 2]);
-        result.push_back(c);
-        result.push_back(d);
-        auto [e, f] = std::minmax(indexes[i], indexes[i + 2]);
-        result.push_back(e);
-        result.push_back(f);
+        throw std::runtime_error("count must be divisible by 3. Value: "
+                                 + std::to_string(count));
     }
 
-    // A trick: treat the pairs of uint16_t as uint32_t and remove all
-    // duplicates, which are there as a result of all internal edges being
-    // included twice.
-    auto* pairs32 = reinterpret_cast<uint32_t*>(result.data());
-    auto size32 = result.size() / 2;
-    std::sort(pairs32, pairs32 + size32);
-    result.resize(2 * (std::unique(pairs32, pairs32 + size32) - pairs32));
+    std::vector<std::pair<uint16_t, uint16_t>> pairs;
+    pairs.reserve(count);
+    for (size_t i = 0; i < count; i += 3)
+    {
+        pairs.emplace_back(std::minmax(indexes[i], indexes[i + 1]));
+        pairs.emplace_back(std::minmax(indexes[i + 1], indexes[i + 2]));
+        pairs.emplace_back(std::minmax(indexes[i], indexes[i + 2]));
+    }
 
-    return result;
+    std::sort(pairs.begin(), pairs.end());
+    pairs.erase(std::unique(pairs.begin(), pairs.end()), pairs.end());
+
+    result.reserve(result.size() + pairs.size() * 2);
+    for (auto [a, b] : pairs)
+    {
+        result.push_back(a);
+        result.push_back(b);
+    }
 }
 
 class ImageViewer : public Tungsten::EventLoop
@@ -152,7 +154,6 @@ public:
     void on_startup(Tungsten::SdlApplication& app) override
     {
         auto array = make_sphere(16, 64);
-        write(std::cout, array);
         vertex_array_ = Tungsten::generate_vertex_array();
         Tungsten::bind_vertex_array(vertex_array_);
 
@@ -163,29 +164,26 @@ public:
         Tungsten::set_buffer_data(GL_ARRAY_BUFFER, GLsizeiptr(vertexes_size),
                                   vertexes, GL_STATIC_DRAW);
 
-        //auto [indexes, index_size] = array.index_buffer();
-        auto all_indexes = make_line_index_buffer(array.indexes);
-
-        line_count_ = int(all_indexes.size());
-        all_indexes.insert(all_indexes.end(),
-                           array.indexes.begin(),
-                           array.indexes.end());
         count_ = int(array.indexes.size());
+
+        triangle_indexes_to_lines(array.indexes.data(),
+                                  array.indexes.size(),
+                                  array.indexes);
+
+        line_count_ = int(array.indexes.size()) - count_;
+        auto [indexes, index_size] = array.index_buffer();
 
         Tungsten::bind_buffer(GL_ELEMENT_ARRAY_BUFFER, buffers_[1]);
         Tungsten::set_buffer_data(GL_ELEMENT_ARRAY_BUFFER,
-                                  GLsizeiptr(all_indexes.size() * sizeof(uint16_t)),
-                                  all_indexes.data(), GL_STATIC_DRAW);
-        //Tungsten::set_buffer_data(GL_ELEMENT_ARRAY_BUFFER, GLsizeiptr(index_size),
-        //                          indexes, GL_STATIC_DRAW);
-
+                                  GLsizeiptr(index_size),
+                                  indexes, GL_STATIC_DRAW);
 
         texture_ = Tungsten::generate_texture();
         Tungsten::bind_texture(GL_TEXTURE_2D, texture_);
 
         auto [format, type] = get_ogl_pixel_type(img_.pixel_type());
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        Tungsten::set_texture_image_2d(GL_TEXTURE_2D, 0, GL_RGBA,
+        Tungsten::set_texture_image_2d(GL_TEXTURE_2D, 0, GL_RGB,
                                        int(img_.width()), int(img_.height()),
                                        format, type,
                                        img_.data());
@@ -197,6 +195,7 @@ public:
         Tungsten::set_texture_parameter(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
         program_.setup();
+        Tungsten::use_program(program_.program);
         Tungsten::define_vertex_attribute_pointer(
             program_.position, 3, GL_FLOAT, false, 5 * sizeof(float), 0);
         Tungsten::enable_vertex_attribute(program_.position);
@@ -206,6 +205,7 @@ public:
         Tungsten::enable_vertex_attribute(program_.texture_coord);
 
         line_program_.setup();
+        Tungsten::use_program(line_program_.program);
         line_program_.color.set({1.f, 0.f, 0.f, 1.f});
         Tungsten::define_vertex_attribute_pointer(
             line_program_.position, 3, GL_FLOAT, false, 5 * sizeof(float), 0);
@@ -235,16 +235,16 @@ public:
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         auto mv_matrix = get_mv_matrix(app);
         auto p_matrix = get_p_matrix(app);
+
         Tungsten::use_program(program_.program);
         program_.mv_matrix.set(mv_matrix);
         program_.p_matrix.set(p_matrix);
-        Tungsten::draw_elements(GL_TRIANGLES, count_, GL_UNSIGNED_SHORT,
-                                line_count_);
+        Tungsten::draw_triangles16( count_, 0);
 
         Tungsten::use_program(line_program_.program);
         line_program_.mv_matrix.set(mv_matrix);
         line_program_.p_matrix.set(p_matrix);
-        Tungsten::draw_elements(GL_LINES, line_count_, GL_UNSIGNED_SHORT);
+        Tungsten::draw_lines16( line_count_, count_);
     }
 private:
     bool on_mouse_wheel(const Tungsten::SdlApplication& app,
@@ -261,7 +261,6 @@ private:
             scale_ = 4;
 
         pos_calculator_.set_view_angle(Xyz::to_radians(scale_));
-        JEB_SHOW(scale_);
         redraw();
         return true;
     }

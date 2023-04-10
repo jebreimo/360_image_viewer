@@ -6,19 +6,18 @@
 // License text is included with the source distribution.
 //****************************************************************************
 #include "Unicolor3DShaderProgram.hpp"
+
+#include <Tungsten/ShaderProgramBuilder.hpp>
 #include "Unicolor3D-frag.glsl.hpp"
 #include "Unicolor3D-vert.glsl.hpp"
 
 void Unicolor3DShaderProgram::setup()
 {
     using namespace Tungsten;
-    program = create_program();
-    auto vertexShader = create_shader(GL_VERTEX_SHADER, Unicolor3D_vert);
-    attach_shader(program, vertexShader);
-    auto fragmentShader = create_shader(GL_FRAGMENT_SHADER, Unicolor3D_frag);
-    attach_shader(program, fragmentShader);
-    link_program(program);
-    use_program(program);
+    program = ShaderProgramBuilder()
+        .add_shader(ShaderType::VERTEX, Unicolor3D_vert)
+        .add_shader(ShaderType::FRAGMENT, Unicolor3D_frag)
+        .build();
 
     position = get_vertex_attribute(program, "a_position");
     texture_coord = get_vertex_attribute(program, "a_texture_coord");

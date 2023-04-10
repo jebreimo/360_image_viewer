@@ -6,19 +6,18 @@
 // License text is included with the source distribution.
 //****************************************************************************
 #include "Render3DShaderProgram.hpp"
+
+#include <Tungsten/ShaderProgramBuilder.hpp>
 #include "Render3D-frag.glsl.hpp"
 #include "Render3D-vert.glsl.hpp"
 
 void Render3DShaderProgram::setup()
 {
     using namespace Tungsten;
-    program = create_program();
-    auto vertexShader = create_shader(GL_VERTEX_SHADER, Render3D_vert);
-    attach_shader(program, vertexShader);
-    auto fragmentShader = create_shader(GL_FRAGMENT_SHADER, Render3D_frag);
-    attach_shader(program, fragmentShader);
-    link_program(program);
-    use_program(program);
+    program = ShaderProgramBuilder()
+        .add_shader(ShaderType::VERTEX, Render3D_vert)
+        .add_shader(ShaderType::FRAGMENT, Render3D_frag)
+        .build();
 
     position = get_vertex_attribute(program, "a_position");
     texture_coord = get_vertex_attribute(program, "a_texture_coord");
