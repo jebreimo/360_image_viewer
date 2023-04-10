@@ -10,7 +10,7 @@
     <canvas class="main" id="canvas"></canvas>
     <div class="top">
       <div class="box">
-        <p class="footer">Running Spheres</p>
+        <p class="footer">Running @EMSCRIPTEN_TARGET_NAME@</p>
       </div>
     </div>
     <script type='text/javascript'>

@@ -61,6 +61,11 @@ target_embed_cpp_data(3d_image_viewer
     )
 
 if (EMSCRIPTEN)
+    target_link_options(3d_image_viewer
+        PRIVATE
+            -s ALLOW_MEMORY_GROWTH=1
+        )
     set(EMSCRIPTEN_TARGET_NAME 3d_image_viewer)
     configure_file(src/emscripten/index.html.in index.html)
+    configure_file(src/emscripten/index.css index.css)
 endif ()
