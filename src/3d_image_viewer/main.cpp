@@ -11,11 +11,8 @@
 #include <Yimage/Yimage.hpp>
 #include "Cross.hpp"
 #include "DefaultImage.hpp"
-#include "ObjFileWriter.hpp"
-#include "Render3DShaderProgram.hpp"
 #include "Sphere.hpp"
 #include "SpherePosCalculator.hpp"
-#include "Unicolor3DShaderProgram.hpp"
 #include "YimageGl.hpp"
 #include "Debug.hpp"
 
@@ -206,7 +203,9 @@ int main(int argc, char* argv[])
             img = yimage::read_jpeg(DEFAULT_IMAGE, std::size(DEFAULT_IMAGE) - 1);
         auto event_loop = std::make_unique<ImageViewer>(img);
         Tungsten::SdlApplication app("ShowPng", std::move(event_loop));
+        #ifndef __EMSCRIPTEN__
         app.set_event_loop_mode(Tungsten::EventLoopMode::WAIT_FOR_EVENTS);
+        #endif
         app.read_command_line_options(args);
         app.run();
     }
