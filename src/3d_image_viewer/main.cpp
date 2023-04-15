@@ -9,138 +9,15 @@
 #include <Argos/Argos.hpp>
 #include <Tungsten/Tungsten.hpp>
 #include <Yimage/Yimage.hpp>
+#include "Cross.hpp"
 #include "DefaultImage.hpp"
 #include "ObjFileWriter.hpp"
 #include "Render3DShaderProgram.hpp"
-#include "Unicolor3DShaderProgram.hpp"
+#include "Sphere.hpp"
 #include "SpherePosCalculator.hpp"
+#include "Unicolor3DShaderProgram.hpp"
 #include "YimageGl.hpp"
 #include "Debug.hpp"
-
-struct Vertex
-{
-    Xyz::Vector3F pos;
-    Xyz::Vector2F tex;
-};
-
-Tungsten::ArrayBuffer<Vertex> make_sphere(int circles, int points)
-{
-    if (circles < 2)
-        throw std::runtime_error("Number of circles must be at least 2.");
-    if (points < 3)
-        throw std::runtime_error("Number of points must be at least 3.");
-    Tungsten::ArrayBuffer<Vertex> result;
-    Tungsten::ArrayBufferBuilder builder(result);
-
-    constexpr auto PI = Xyz::Constants<float>::PI;
-
-    std::vector<float> pos_z_values;
-    std::vector<float> z_factors;
-    std::vector<float> tex_y_values;
-    for (int i = 0; i < circles; ++i)
-    {
-        const float angle = 0.5f * (-1.f + float(2 * i + 1) / float(circles)) * PI;
-        pos_z_values.push_back(sin(angle));
-        z_factors.push_back(cos(angle));
-        tex_y_values.push_back(1.f - (float(i) + 0.5f) / float(circles));
-    }
-
-    for (int i = 0; i <= points; ++i)
-    {
-        const float angle = (float(i) * 2.f / float(points) - 0.5f) * PI;
-        const float pos_x =  cos(angle);
-        const float pos_y =  sin(angle);
-        const float tex_x = 1.0f - float(i) / float(points);
-        for (int j = 0; j < circles; ++j)
-        {
-            builder.add_vertex({.pos = {pos_x * z_factors[j],
-                                        pos_y * z_factors[j],
-                                        pos_z_values[j]},
-                                   .tex = {tex_x, tex_y_values[j]}});
-        }
-    }
-
-    for (int i = 0; i < points; ++i)
-    {
-        const float tex_x = 1.0f - (float(i) + 0.5f) / float(points);
-        builder.add_vertex({.pos = {0, 0, -1}, .tex = {tex_x, 1.0}});
-    }
-
-    for (int i = 0; i < points; ++i)
-    {
-        const float tex_x = 1.0f - (float(i) + 0.5f) / float(points);
-        builder.add_vertex({.pos = {0, 0, 1}, .tex = {tex_x, 0.0}});
-    }
-
-    for (int i = 0; i < points; ++i)
-        builder.add_indexes(i * circles, (i + 1) * circles, i + (circles * (points + 1)));
-
-    for (int i = 0; i < points; ++i)
-    {
-        for (int j = 0; j < circles - 1; ++j)
-        {
-            const auto n = uint16_t(i * circles + j);
-            builder.add_indexes(n, n + 1, n + circles + 1);
-            builder.add_indexes(n, n + circles + 1, n + circles);
-        }
-    }
-
-    for (int i = 0; i < points; ++i)
-        builder.add_indexes((i + 2) * circles - 1, (i + 1) * circles - 1, i + ((circles + 1) * (points + 1)) - 1);
-
-    return result;
-}
-
-void write(std::ostream& os, Tungsten::ArrayBuffer<Vertex>& buffer)
-{
-    ObjFileWriter writer(os);
-    for (const auto& vertex : buffer.vertexes)
-        writer.write_vertex(vertex.pos);
-
-    for (const auto& vertex : buffer.vertexes)
-        writer.write_tex(vertex.tex);
-
-    for (size_t i = 0; i < buffer.indexes.size(); i += 3)
-    {
-        writer.begin_face();
-        for (size_t j = 0; j < 3; ++j)
-        {
-            auto n = 1 + buffer.indexes[i + j];
-            writer.write_face({n, n});
-        }
-        writer.end_face();
-    }
-}
-
-void triangle_indexes_to_lines(const uint16_t* indexes,
-                               size_t count,
-                               std::vector<uint16_t>& result)
-{
-    if (count % 3 != 0)
-    {
-        throw std::runtime_error("count must be divisible by 3. Value: "
-                                 + std::to_string(count));
-    }
-
-    std::vector<std::pair<uint16_t, uint16_t>> pairs;
-    pairs.reserve(count);
-    for (size_t i = 0; i < count; i += 3)
-    {
-        pairs.emplace_back(std::minmax(indexes[i], indexes[i + 1]));
-        pairs.emplace_back(std::minmax(indexes[i + 1], indexes[i + 2]));
-        pairs.emplace_back(std::minmax(indexes[i], indexes[i + 2]));
-    }
-
-    std::sort(pairs.begin(), pairs.end());
-    pairs.erase(std::unique(pairs.begin(), pairs.end()), pairs.end());
-
-    result.reserve(result.size() + pairs.size() * 2);
-    for (auto [a, b] : pairs)
-    {
-        result.push_back(a);
-        result.push_back(b);
-    }
-}
 
 class ImageViewer : public Tungsten::EventLoop
 {
@@ -154,63 +31,8 @@ public:
 
     void on_startup(Tungsten::SdlApplication& app) override
     {
-        auto array = make_sphere(16, 64);
-        vertex_array_ = Tungsten::generate_vertex_array();
-        Tungsten::bind_vertex_array(vertex_array_);
-
-        buffers_ = Tungsten::generate_buffers(2);
-
-        auto [vertexes, vertexes_size] = array.array_buffer();
-        Tungsten::bind_buffer(GL_ARRAY_BUFFER, buffers_[0]);
-        Tungsten::set_buffer_data(GL_ARRAY_BUFFER, GLsizeiptr(vertexes_size),
-                                  vertexes, GL_STATIC_DRAW);
-
-        count_ = int(array.indexes.size());
-
-        triangle_indexes_to_lines(array.indexes.data(),
-                                  array.indexes.size(),
-                                  array.indexes);
-
-        line_count_ = int(array.indexes.size()) - count_;
-        auto [indexes, index_size] = array.index_buffer();
-
-        Tungsten::bind_buffer(GL_ELEMENT_ARRAY_BUFFER, buffers_[1]);
-        Tungsten::set_buffer_data(GL_ELEMENT_ARRAY_BUFFER,
-                                  GLsizeiptr(index_size),
-                                  indexes, GL_STATIC_DRAW);
-
-        texture_ = Tungsten::generate_texture();
-        Tungsten::bind_texture(GL_TEXTURE_2D, texture_);
-
-        auto [format, type] = get_ogl_pixel_type(img_.pixel_type());
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        Tungsten::set_texture_image_2d(GL_TEXTURE_2D, 0, GL_RGB,
-                                       int(img_.width()), int(img_.height()),
-                                       format, type,
-                                       img_.data());
-        img_ = {};
-
-        Tungsten::set_texture_min_filter(GL_TEXTURE_2D, GL_LINEAR);
-        Tungsten::set_texture_mag_filter(GL_TEXTURE_2D, GL_LINEAR);
-        Tungsten::set_texture_parameter(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        Tungsten::set_texture_parameter(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-        program_.setup();
-        Tungsten::use_program(program_.program);
-        Tungsten::define_vertex_attribute_pointer(
-            program_.position, 3, GL_FLOAT, false, 5 * sizeof(float), 0);
-        Tungsten::enable_vertex_attribute(program_.position);
-        Tungsten::define_vertex_attribute_pointer(
-            program_.texture_coord, 2, GL_FLOAT, true, 5 * sizeof(float),
-            3 * sizeof(float));
-        Tungsten::enable_vertex_attribute(program_.texture_coord);
-
-        line_program_.setup();
-        Tungsten::use_program(line_program_.program);
-        line_program_.color.set({1.f, 0.f, 0.f, 1.f});
-        Tungsten::define_vertex_attribute_pointer(
-            line_program_.position, 3, GL_FLOAT, false, 5 * sizeof(float), 0);
-        Tungsten::enable_vertex_attribute(line_program_.position);
+        sphere_ = std::make_unique<Sphere>(img_, 16, 64);
+        cross_ = std::make_unique<Cross>();
     }
 
     bool on_event(Tungsten::SdlApplication& app, const SDL_Event& event) override
@@ -236,24 +58,15 @@ public:
     {
         glClearColor(0, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
         auto mv_matrix = get_mv_matrix(app);
         auto p_matrix = get_p_matrix(app);
+        sphere_->draw(mv_matrix, p_matrix);
 
-        Tungsten::use_program(program_.program);
-        program_.mv_matrix.set(mv_matrix);
-        program_.p_matrix.set(p_matrix);
-        Tungsten::draw_triangles16( count_, 0);
-
-        if (show_mesh_)
-        {
-            Tungsten::use_program(line_program_.program);
-            line_program_.mv_matrix.set(mv_matrix);
-            line_program_.p_matrix.set(p_matrix);
-            Tungsten::draw_lines16( line_count_, count_);
-        }
+        cross_->draw();
     }
 private:
-    bool on_mouse_wheel(const Tungsten::SdlApplication& app,
+    bool on_mouse_wheel(const Tungsten::SdlApplication&,
                         const SDL_Event& event)
     {
         if (event.wheel.y > 0)
@@ -290,7 +103,7 @@ private:
         return true;
     }
 
-    bool on_mouse_button_down(const Tungsten::SdlApplication& app,
+    bool on_mouse_button_down(const Tungsten::SdlApplication&,
                               const SDL_Event& event)
     {
         if (event.button.button == SDL_BUTTON_LEFT)
@@ -303,18 +116,14 @@ private:
         else if (event.button.button == SDL_BUTTON_RIGHT)
         {
             auto pos = pos_calculator_.calc_sphere_pos(mouse_pos_);
-            std::clog << mouse_pos_ << " -> "
-                      << Xyz::to_degrees(pos.azimuth) << ", "
-                      << Xyz::to_degrees(pos.polar) << "\n";
+            std::clog << mouse_pos_ << " -> " << Xyz::to_degrees(pos) << "\n";
             pos = Xyz::to_spherical(pos_calculator_.calc_center_pos());
-            std::clog << "  center: "
-                      << Xyz::to_degrees(pos.azimuth) << ", "
-                      << Xyz::to_degrees(pos.polar) << "\n";
+            std::clog << "  center: " << Xyz::to_degrees(pos) << "\n";
         }
         return true;
     }
 
-    bool on_mouse_button_up(const Tungsten::SdlApplication& app,
+    bool on_mouse_button_up(const Tungsten::SdlApplication&,
                             const SDL_Event& event)
     {
         if (event.button.button == SDL_BUTTON_LEFT)
@@ -322,7 +131,7 @@ private:
         return true;
     }
 
-    bool on_key_down(const Tungsten::SdlApplication& app,
+    bool on_key_down(const Tungsten::SdlApplication&,
                      const SDL_Event& event)
     {
         if (event.key.repeat)
@@ -330,7 +139,7 @@ private:
 
         if (event.key.keysym.sym == SDLK_m)
         {
-            show_mesh_ = !show_mesh_;
+            sphere_->show_mesh = !sphere_->show_mesh;
             redraw();
             return true;
         }
@@ -370,20 +179,14 @@ private:
         return Xyz::make_frustum_matrix<float>(-size * x, size * x, -size * y, size * y, 0.5f, 10);
     }
 
-    int line_count_ = 0;
-    int count_ = 0;
     int scale_ = 40;
     Xyz::SphericalPointD center_pos_;
     Xyz::Vector2D mouse_pos_;
     yimage::Image img_;
-    std::vector<Tungsten::BufferHandle> buffers_;
-    Tungsten::VertexArrayHandle vertex_array_;
-    Tungsten::TextureHandle texture_;
-    Render3DShaderProgram program_;
-    Unicolor3DShaderProgram line_program_;
     SpherePosCalculator pos_calculator_;
     bool is_panning_ = false;
-    bool show_mesh_ = false;
+    std::unique_ptr<Cross> cross_;
+    std::unique_ptr<Sphere> sphere_;
 };
 
 int main(int argc, char* argv[])

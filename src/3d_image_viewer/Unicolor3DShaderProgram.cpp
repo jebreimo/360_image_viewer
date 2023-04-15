@@ -20,7 +20,6 @@ void Unicolor3DShaderProgram::setup()
         .build();
 
     position = get_vertex_attribute(program, "a_position");
-    texture_coord = get_vertex_attribute(program, "a_texture_coord");
 
     mv_matrix = get_uniform<Xyz::Matrix4F>(program, "u_mv_matrix");
     p_matrix = get_uniform<Xyz::Matrix4F>(program, "u_p_matrix");

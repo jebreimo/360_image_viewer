@@ -1,23 +1,23 @@
 //****************************************************************************
 // Copyright © 2023 Jan Erik Breimo. All rights reserved.
-// Created by Jan Erik Breimo on 2023-03-12.
+// Created by Jan Erik Breimo on 2023-04-15.
 //
 // This file is distributed under the BSD License.
 // License text is included with the source distribution.
 //****************************************************************************
 #pragma once
-#include "Tungsten/Tungsten.hpp"
+#include <Tungsten/Tungsten.hpp>
+#include "Unicolor3DShaderProgram.hpp"
 
-class Unicolor3DShaderProgram
+class Cross
 {
 public:
-    void setup();
+    Cross();
 
-    Tungsten::ProgramHandle program;
-
-    Tungsten::Uniform<Xyz::Matrix4F> mv_matrix;
-    Tungsten::Uniform<Xyz::Matrix4F> p_matrix;
-    Tungsten::Uniform<Xyz::Vector4F> color;
-
-    GLuint position;
+    void draw();
+private:
+    Tungsten::BufferHandle buffer_;
+    Tungsten::VertexArrayHandle vertex_array_;
+    GLsizei count_;
+    Unicolor3DShaderProgram program_;
 };

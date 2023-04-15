@@ -15,7 +15,7 @@ FetchContent_Declare(yimage
     GIT_TAG v0.1.3)
 FetchContent_Declare(xyz
     GIT_REPOSITORY "https://github.com/jebreimo/Xyz.git"
-    GIT_TAG v0.2.86)
+    GIT_TAG v0.2.87)
 FetchContent_MakeAvailable(argos tungsten yimage xyz)
 
 list(APPEND CMAKE_MODULE_PATH ${tungsten_SOURCE_DIR}/tools/cmake)
@@ -36,6 +36,10 @@ add_executable(3d_image_viewer
     src/3d_image_viewer/Unicolor3DShaderProgram.hpp
     src/3d_image_viewer/YimageGl.cpp
     src/3d_image_viewer/YimageGl.hpp
+    src/3d_image_viewer/Cross.cpp
+    src/3d_image_viewer/Cross.hpp
+    src/3d_image_viewer/Sphere.cpp
+    src/3d_image_viewer/Sphere.hpp
     )
 
 target_link_libraries(3d_image_viewer
