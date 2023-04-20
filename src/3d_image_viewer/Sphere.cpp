@@ -140,7 +140,7 @@ namespace
 
 Sphere::Sphere(const yimage::Image& img, int circles, int points)
 {
-    auto array = make_sphere(16, 64);
+    auto array = make_sphere(circles, points);
     vertex_array_ = Tungsten::generate_vertex_array();
     Tungsten::bind_vertex_array(vertex_array_);
 

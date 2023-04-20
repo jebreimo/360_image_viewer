@@ -15,6 +15,8 @@ public:
     Cross();
 
     void draw();
+
+    bool visible = false;
 private:
     Tungsten::BufferHandle buffer_;
     Tungsten::VertexArrayHandle vertex_array_;

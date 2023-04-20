@@ -33,6 +33,9 @@ Cross::Cross()
 
 void Cross::draw()
 {
+    if (!visible)
+        return;
+
     Tungsten::bind_vertex_array(vertex_array_);
     Tungsten::use_program(program_.program);
     Tungsten::draw_line_array(0, count_);

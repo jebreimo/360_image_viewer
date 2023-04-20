@@ -28,7 +28,7 @@ public:
 
     void on_startup(Tungsten::SdlApplication& app) override
     {
-        sphere_ = std::make_unique<Sphere>(img_, 16, 64);
+        sphere_ = std::make_unique<Sphere>(img_, 16, 60);
         cross_ = std::make_unique<Cross>();
     }
 
@@ -62,6 +62,7 @@ public:
 
         cross_->draw();
     }
+
 private:
     bool on_mouse_wheel(const Tungsten::SdlApplication&,
                         const SDL_Event& event)
@@ -137,6 +138,7 @@ private:
         if (event.key.keysym.sym == SDLK_m)
         {
             sphere_->show_mesh = !sphere_->show_mesh;
+            cross_->visible = !cross_->visible;
             redraw();
             return true;
         }
@@ -151,7 +153,6 @@ private:
         auto eye_vec = Xyz::vector_cast<float>(pos_calculator_.calc_eye_pos());
         auto center_vec = Xyz::vector_cast<float>(pos_calculator_.calc_center_pos());
         auto up_vec = Xyz::vector_cast<float>(pos_calculator_.calc_up_vector());
-
         return Xyz::make_look_at_matrix(eye_vec, center_vec, up_vec);
     }
 
@@ -160,7 +161,7 @@ private:
     {
         auto [w, h] = app.window_size();
         float x, y;
-        if (w > h)
+        if (w < h)
         {
             x = float(w) / float(h);
             y = 1.0;
@@ -171,13 +172,12 @@ private:
             y = float(h) / float(w);
         }
 
-        float angle = 0.5f * Xyz::to_radians(float(scale_));
-        float size = 0.5f * sin(angle) / pow(cos(angle) + 0.5f, 2.f);
-        return Xyz::make_frustum_matrix<float>(-size * x, size * x, -size * y, size * y, 0.5f, 10);
+        double angle = 0.5 * Xyz::to_radians(double(scale_));
+        auto size = float(0.5 * sin(angle) / (cos(angle) + 0.5));
+        return Xyz::make_frustum_matrix<float>(-size * x, size * x, -size * y, size * y, 0.5f, 2.f);
     }
 
-    int scale_ = 40;
-    Xyz::SphericalPointD center_pos_;
+    int scale_ = 60;
     Xyz::Vector2D mouse_pos_;
     yimage::Image img_;
     SpherePosCalculator pos_calculator_;
