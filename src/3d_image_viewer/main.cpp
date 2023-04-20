@@ -125,7 +125,10 @@ private:
                             const SDL_Event& event)
     {
         if (event.button.button == SDL_BUTTON_LEFT)
+        {
             is_panning_ = false;
+            pos_calculator_.clear_fixed_point();
+        }
         return true;
     }
 

@@ -147,7 +147,13 @@ void SpherePosCalculator::set_fixed_point(const Xyz::Vector2D& screen_pos,
     fixed_screen_pos_ = screen_pos;
     fixed_sphere_pos_ = {1, sphere_pos.azimuth, sphere_pos.polar};
     invalidate_center_pos();
-    JEB_SHOW(fixed_screen_pos_, Xyz::to_degrees(fixed_sphere_pos_));
+}
+
+void SpherePosCalculator::clear_fixed_point()
+{
+    ensure_valid_center_pos();
+    fixed_screen_pos_ = {0, 0};
+    fixed_sphere_pos_ = *center_pos_;
 }
 
 double SpherePosCalculator::eye_dist() const
@@ -200,6 +206,5 @@ void SpherePosCalculator::ensure_valid_center_pos()
         ViewParams vp = {screen_res_, view_angle_, eye_dist_};
         center_pos_ = calc_center_of_screen(vp, fixed_sphere_pos_,
                                             fixed_screen_pos_);
-        JEB_SHOW(Xyz::to_degrees(*center_pos_));
     }
 }

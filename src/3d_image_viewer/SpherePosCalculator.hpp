@@ -31,6 +31,8 @@ public:
     void set_fixed_point(const Xyz::Vector2D& screen_pos,
                          const Xyz::SphericalPointD& sphere_pos);
 
+    void clear_fixed_point();
+
     [[nodiscard]]
     double eye_dist() const;
 
