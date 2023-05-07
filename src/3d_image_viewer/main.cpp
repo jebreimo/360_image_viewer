@@ -12,14 +12,20 @@
 #include <Yimage/Yimage.hpp>
 #include "Cross.hpp"
 #include "DefaultImage.hpp"
+#include "RingBuffer.hpp"
 #include "Sphere.hpp"
 #include "SpherePosCalculator.hpp"
 #include "YimageGl.hpp"
 #include "Debug.hpp"
 
+constexpr double MAX_CENTER_POINT_AGE = 0.05;
+constexpr double MAX_SPEED = 4;
+
+using time_point = std::chrono::high_resolution_clock::time_point;
+using PrevPositionList = RingBuffer<std::pair<time_point, Xyz::SphericalPointD>, 4>;
+
 struct ScreenMotion
 {
-    using time_point = std::chrono::high_resolution_clock::time_point;
     time_point start_time = {};
     time_point end_time = {};
     Xyz::SphericalPointD origin;
@@ -65,29 +71,17 @@ public:
 
     void on_update(Tungsten::SdlApplication& app) override
     {
-        if (!something_)
+        if (!motion_)
             return;
 
-        using namespace std::chrono;
-        auto now = high_resolution_clock::now();
-        if (now >= something_->end_time)
+        auto position = calculate_current_position(*motion_);
+        if (!position)
         {
-            something_.reset();
+            motion_.reset();
             return;
         }
 
-        auto secs = duration_cast<duration<double>>(now - something_->start_time).count();
-
-        constexpr auto pi = Xyz::Constants<double>::PI;
-        auto radius = std::sqrt(std::max(std::abs(something_->azimuth_speed),
-                                         std::abs(something_->polar_speed)));
-        auto factor = 0.25 * std::sqrt(secs * (2 * radius - secs));
-        auto az = something_->origin.azimuth
-                  + something_->azimuth_speed * factor;
-        auto po = Xyz::get_clamped(something_->origin.polar + something_->polar_speed * factor,
-                                   -pi / 2, pi / 2);
-
-        pos_calculator_.set_fixed_point({0, 0}, {1.0, az, po});
+        pos_calculator_.set_fixed_point({0, 0}, *position);
         redraw();
     }
 
@@ -101,7 +95,7 @@ public:
         sphere_->draw(mv_matrix, p_matrix);
         cross_->draw();
 
-        if (something_)
+        if (motion_)
             redraw();
     }
 
@@ -136,12 +130,10 @@ private:
         {
             pos_calculator_.set_fixed_point(new_mouse_pos,
                                             pos_calculator_.fixed_point().second);
-            std::copy(std::begin(prev_center_points_) + 1,
-                      std::end(prev_center_points_),
-                      std::begin(prev_center_points_));
-            prev_center_points_[std::size(prev_center_points_) - 1] = {
+            prev_center_points_.push({
                 std::chrono::high_resolution_clock::now(),
-                Xyz::to_spherical(pos_calculator_.calc_center_pos())};
+                Xyz::to_spherical(pos_calculator_.calc_center_pos())
+            });
             redraw();
         }
 
@@ -155,14 +147,13 @@ private:
         if (event.button.button == SDL_BUTTON_LEFT)
         {
             auto center = Xyz::to_spherical(pos_calculator_.calc_center_pos());
-            std::fill(std::begin(prev_center_points_),
-                      std::end(prev_center_points_),
-                      std::pair(std::chrono::high_resolution_clock::now(), center));
+            prev_center_points_.clear();
+            prev_center_points_.push({std::chrono::high_resolution_clock::now(), center});
             is_panning_ = true;
             pos_calculator_.set_fixed_point(
                 mouse_pos_,
                 pos_calculator_.calc_sphere_pos(mouse_pos_));
-            something_ = {};
+            motion_ = {};
         }
         else if (event.button.button == SDL_BUTTON_RIGHT)
         {
@@ -179,34 +170,9 @@ private:
     {
         if (event.button.button == SDL_BUTTON_LEFT)
         {
-            using namespace std::chrono;
-            auto now = high_resolution_clock::now();
-
-            const auto& first = prev_center_points_[0];
-            const auto& prev = prev_center_points_[std::size(prev_center_points_) - 2];
-            const auto& last = prev_center_points_[std::size(prev_center_points_) - 1];
-            auto secs1 = duration_cast<duration<double>>(now - last.first).count();
-
-            if (secs1 != 0 && secs1 < 0.05)
-            {
-                auto secs = duration_cast<duration<double>>(now - prev.first).count();
-                auto azimuth_speed = Xyz::get_clamped((last.second.azimuth - prev.second.azimuth) / secs, -4.0, 4.0);
-                auto polar_speed = Xyz::get_clamped((last.second.polar - prev.second.polar) / secs, -4.0, 4.0);
-                auto max_speed = std::max(std::abs(azimuth_speed),
-                                          std::abs(polar_speed));
-
-                auto duration = std::chrono::duration<double>(std::sqrt(max_speed));
-                auto end_time = now + duration_cast<high_resolution_clock ::duration>(duration);
-                something_ = {
-                    now,
-                    end_time,
-                    last.second,
-                    azimuth_speed,
-                    polar_speed
-                };
+            motion_ = calculate_motion(prev_center_points_);
+            if (motion_)
                 redraw();
-                JEB_SHOW(secs, azimuth_speed, polar_speed);
-            }
             is_panning_ = false;
             pos_calculator_.clear_fixed_point();
         }
@@ -261,6 +227,64 @@ private:
         return Xyz::make_frustum_matrix<float>(-size * x, size * x, -size * y, size * y, 0.5f, 2.f);
     }
 
+    [[nodiscard]] static std::optional<ScreenMotion>
+    calculate_motion(const PrevPositionList& prev_positions)
+    {
+        using namespace std::chrono;
+        auto now = high_resolution_clock::now();
+
+        auto it = std::find_if(prev_positions.begin(),
+                               prev_positions.end(),
+                               [&](const auto& p)
+                               {
+                                   return duration_cast<duration<double>>(
+                                       now - p.first).count() < MAX_CENTER_POINT_AGE;
+                               });
+
+        if (it == prev_positions.end())
+            return {};
+
+        const auto& [time0, pos0] = *it;
+        const auto& [time1, pos1] = prev_positions.back();
+        auto secs = duration_cast<duration<double>>(now - time0).count();
+        auto azimuth_speed = Xyz::clamp((pos1.azimuth - pos0.azimuth) / secs,
+                                        -MAX_SPEED, MAX_SPEED);
+        auto polar_speed = Xyz::clamp((pos1.polar - pos0.polar) / secs,
+                                      -MAX_SPEED, MAX_SPEED);
+        auto max_speed = std::max(std::abs(azimuth_speed),
+                                  std::abs(polar_speed));
+
+        auto duration = std::chrono::duration<double>(std::sqrt(max_speed));
+        auto end_time = now + duration_cast<high_resolution_clock::duration>(duration);
+        return ScreenMotion{now, end_time, pos1, azimuth_speed, polar_speed};
+    }
+
+    [[nodiscard]] static std::optional<Xyz::SphericalPointD>
+    calculate_current_position(const ScreenMotion& motion)
+    {
+        using namespace std::chrono;
+        auto now = high_resolution_clock::now();
+        if (now >= motion.end_time)
+            return {};
+
+        auto secs = duration_cast<duration<double>>(now - motion.start_time).count();
+
+        // I'm using the equation of the "top left" quarter of an ellipse
+        // to control the "deceleration" of the screen movement.
+        // The ellipses a-value is the square root of the greatest absolute
+        // value of the two speed, its b-value is one quarter of the a-value,
+        // its center lies at x, y = radius, 0.
+        constexpr auto pi = Xyz::Constants<double>::PI;
+        auto radius = std::sqrt(std::max(std::abs(motion.azimuth_speed),
+                                         std::abs(motion.polar_speed)));
+        auto factor = 0.25 * std::sqrt(secs * (2 * radius - secs));
+        auto az = motion.origin.azimuth
+                  + motion.azimuth_speed * factor;
+        auto po = Xyz::clamp(motion.origin.polar + motion.polar_speed * factor,
+                             -pi / 2, pi / 2);
+        return Xyz::SphericalPointD(1.0, az, po);
+    }
+
     int scale_ = 60;
     Xyz::Vector2D mouse_pos_;
     yimage::Image img_;
@@ -268,9 +292,8 @@ private:
     bool is_panning_ = false;
     std::unique_ptr<Cross> cross_;
     std::unique_ptr<Sphere> sphere_;
-    using time_point = std::chrono::high_resolution_clock::time_point;
-    std::pair<time_point, Xyz::SphericalPointD> prev_center_points_[3];
-    std::optional<ScreenMotion> something_;
+    PrevPositionList prev_center_points_;
+    std::optional<ScreenMotion> motion_;
 };
 
 int main(int argc, char* argv[])

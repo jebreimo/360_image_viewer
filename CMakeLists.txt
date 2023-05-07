@@ -9,13 +9,13 @@ FetchContent_Declare(argos
     GIT_TAG v1.1.270)
 FetchContent_Declare(tungsten
     GIT_REPOSITORY "https://github.com/jebreimo/Tungsten.git"
-    GIT_TAG master)
+    GIT_TAG v0.3.0)
 FetchContent_Declare(yimage
     GIT_REPOSITORY "https://github.com/jebreimo/Yimage.git"
     GIT_TAG v0.1.3)
 FetchContent_Declare(xyz
     GIT_REPOSITORY "https://github.com/jebreimo/Xyz.git"
-    GIT_TAG v0.2.87)
+    GIT_TAG v0.2.89)
 FetchContent_MakeAvailable(argos tungsten yimage xyz)
 
 list(APPEND CMAKE_MODULE_PATH ${tungsten_SOURCE_DIR}/tools/cmake)
@@ -40,7 +40,7 @@ add_executable(3d_image_viewer
     src/3d_image_viewer/Cross.hpp
     src/3d_image_viewer/Sphere.cpp
     src/3d_image_viewer/Sphere.hpp
-    )
+    src/3d_image_viewer/RingBuffer.hpp)
 
 target_link_libraries(3d_image_viewer
     PRIVATE
