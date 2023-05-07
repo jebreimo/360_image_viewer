@@ -5,6 +5,7 @@
 // This file is distributed under the BSD License.
 // License text is included with the source distribution.
 //****************************************************************************
+#include <chrono>
 #include <iostream>
 #include <Argos/Argos.hpp>
 #include <Tungsten/Tungsten.hpp>
@@ -15,6 +16,16 @@
 #include "SpherePosCalculator.hpp"
 #include "YimageGl.hpp"
 #include "Debug.hpp"
+
+struct ScreenMotion
+{
+    using time_point = std::chrono::high_resolution_clock::time_point;
+    time_point start_time = {};
+    time_point end_time = {};
+    Xyz::SphericalPointD origin;
+    double azimuth_speed = 0;
+    double polar_speed = 0;
+};
 
 class ImageViewer : public Tungsten::EventLoop
 {
@@ -28,6 +39,7 @@ public:
 
     void on_startup(Tungsten::SdlApplication& app) override
     {
+        app.set_swap_interval(1);
         sphere_ = std::make_unique<Sphere>(img_, 16, 60);
         cross_ = std::make_unique<Cross>();
     }
@@ -51,6 +63,34 @@ public:
         }
     }
 
+    void on_update(Tungsten::SdlApplication& app) override
+    {
+        if (!something_)
+            return;
+
+        using namespace std::chrono;
+        auto now = high_resolution_clock::now();
+        if (now >= something_->end_time)
+        {
+            something_.reset();
+            return;
+        }
+
+        auto secs = duration_cast<duration<double>>(now - something_->start_time).count();
+
+        constexpr auto pi = Xyz::Constants<double>::PI;
+        auto radius = std::sqrt(std::max(std::abs(something_->azimuth_speed),
+                                         std::abs(something_->polar_speed)));
+        auto factor = 0.25 * std::sqrt(secs * (2 * radius - secs));
+        auto az = something_->origin.azimuth
+                  + something_->azimuth_speed * factor;
+        auto po = Xyz::get_clamped(something_->origin.polar + something_->polar_speed * factor,
+                                   -pi / 2, pi / 2);
+
+        pos_calculator_.set_fixed_point({0, 0}, {1.0, az, po});
+        redraw();
+    }
+
     void on_draw(Tungsten::SdlApplication& app) override
     {
         glClearColor(0, 0, 0, 1);
@@ -59,8 +99,10 @@ public:
         auto mv_matrix = get_mv_matrix(app);
         auto p_matrix = get_p_matrix(app);
         sphere_->draw(mv_matrix, p_matrix);
-
         cross_->draw();
+
+        if (something_)
+            redraw();
     }
 
 private:
@@ -94,6 +136,12 @@ private:
         {
             pos_calculator_.set_fixed_point(new_mouse_pos,
                                             pos_calculator_.fixed_point().second);
+            std::copy(std::begin(prev_center_points_) + 1,
+                      std::end(prev_center_points_),
+                      std::begin(prev_center_points_));
+            prev_center_points_[std::size(prev_center_points_) - 1] = {
+                std::chrono::high_resolution_clock::now(),
+                Xyz::to_spherical(pos_calculator_.calc_center_pos())};
             redraw();
         }
 
@@ -106,10 +154,15 @@ private:
     {
         if (event.button.button == SDL_BUTTON_LEFT)
         {
+            auto center = Xyz::to_spherical(pos_calculator_.calc_center_pos());
+            std::fill(std::begin(prev_center_points_),
+                      std::end(prev_center_points_),
+                      std::pair(std::chrono::high_resolution_clock::now(), center));
             is_panning_ = true;
             pos_calculator_.set_fixed_point(
                 mouse_pos_,
                 pos_calculator_.calc_sphere_pos(mouse_pos_));
+            something_ = {};
         }
         else if (event.button.button == SDL_BUTTON_RIGHT)
         {
@@ -126,6 +179,34 @@ private:
     {
         if (event.button.button == SDL_BUTTON_LEFT)
         {
+            using namespace std::chrono;
+            auto now = high_resolution_clock::now();
+
+            const auto& first = prev_center_points_[0];
+            const auto& prev = prev_center_points_[std::size(prev_center_points_) - 2];
+            const auto& last = prev_center_points_[std::size(prev_center_points_) - 1];
+            auto secs1 = duration_cast<duration<double>>(now - last.first).count();
+
+            if (secs1 != 0 && secs1 < 0.05)
+            {
+                auto secs = duration_cast<duration<double>>(now - prev.first).count();
+                auto azimuth_speed = Xyz::get_clamped((last.second.azimuth - prev.second.azimuth) / secs, -4.0, 4.0);
+                auto polar_speed = Xyz::get_clamped((last.second.polar - prev.second.polar) / secs, -4.0, 4.0);
+                auto max_speed = std::max(std::abs(azimuth_speed),
+                                          std::abs(polar_speed));
+
+                auto duration = std::chrono::duration<double>(std::sqrt(max_speed));
+                auto end_time = now + duration_cast<high_resolution_clock ::duration>(duration);
+                something_ = {
+                    now,
+                    end_time,
+                    last.second,
+                    azimuth_speed,
+                    polar_speed
+                };
+                redraw();
+                JEB_SHOW(secs, azimuth_speed, polar_speed);
+            }
             is_panning_ = false;
             pos_calculator_.clear_fixed_point();
         }
@@ -187,6 +268,9 @@ private:
     bool is_panning_ = false;
     std::unique_ptr<Cross> cross_;
     std::unique_ptr<Sphere> sphere_;
+    using time_point = std::chrono::high_resolution_clock::time_point;
+    std::pair<time_point, Xyz::SphericalPointD> prev_center_points_[3];
+    std::optional<ScreenMotion> something_;
 };
 
 int main(int argc, char* argv[])
