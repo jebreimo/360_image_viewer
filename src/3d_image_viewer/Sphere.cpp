@@ -136,9 +136,27 @@ namespace
             result.push_back(b);
         }
     }
+
+    Yimage::Image make_dummy_image()
+    {
+        constexpr size_t WIDTH = 512;
+        constexpr size_t HEIGHT = WIDTH / 2;
+        Yimage::Image img(Yimage::PixelType::RGBA_8, WIDTH, HEIGHT);
+        // Blue sky
+        Yimage::fill_rgba8(img.mut_subimage(0, 0, WIDTH, HEIGHT / 2),
+                           {0x99, 0xAA, 0xEE, 0xFF});
+        // Green ground
+        Yimage::fill_rgba8(img.mut_subimage(0, HEIGHT / 2, WIDTH, HEIGHT),
+                           {0x88, 0xDD, 0x33, 0xFF});
+        return img;
+    }
 }
 
-Sphere::Sphere(const yimage::Image& img, int circles, int points)
+Sphere::Sphere(int circles, int points)
+    : Sphere(Yimage::Image(), circles, points)
+{}
+
+Sphere::Sphere(const Yimage::Image& img, int circles, int points)
 {
     auto array = make_sphere(circles, points);
     vertex_array_ = Tungsten::generate_vertex_array();
@@ -168,17 +186,15 @@ Sphere::Sphere(const yimage::Image& img, int circles, int points)
     texture_ = Tungsten::generate_texture();
     Tungsten::bind_texture(GL_TEXTURE_2D, texture_);
 
-    auto [format, type] = get_ogl_pixel_type(img.pixel_type());
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    Tungsten::set_texture_image_2d(GL_TEXTURE_2D, 0, GL_RGB,
-                                   int(img.width()), int(img.height()),
-                                   format, type,
-                                   img.data());
-
     Tungsten::set_texture_min_filter(GL_TEXTURE_2D, GL_LINEAR);
     Tungsten::set_texture_mag_filter(GL_TEXTURE_2D, GL_LINEAR);
     Tungsten::set_texture_parameter(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     Tungsten::set_texture_parameter(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    if (img)
+        set_image(img);
+    else
+        set_image(make_dummy_image());
 
     program_.setup();
     Tungsten::use_program(program_.program);
@@ -197,9 +213,22 @@ Sphere::Sphere(const yimage::Image& img, int circles, int points)
     Tungsten::enable_vertex_attribute(line_program_.position);
 }
 
+void Sphere::set_image(const Yimage::Image& img)
+{
+    Tungsten::bind_texture(GL_TEXTURE_2D, texture_);
+
+    auto [format, type] = get_ogl_pixel_type(img.pixel_type());
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    Tungsten::set_texture_image_2d(GL_TEXTURE_2D, 0, GL_RGB,
+                                   int(img.width()), int(img.height()),
+                                   format, type,
+                                   img.data());
+}
+
 void Sphere::draw(const Xyz::Matrix4F& mv_matrix,
                   const Xyz::Matrix4F& p_matrix)
 {
+    Tungsten::bind_texture(GL_TEXTURE_2D, texture_);
     Tungsten::bind_vertex_array(vertex_array_);
     Tungsten::use_program(program_.program);
     program_.mv_matrix.set(mv_matrix);

@@ -36,7 +36,7 @@ struct ScreenMotion
 class ImageViewer : public Tungsten::EventLoop
 {
 public:
-    explicit ImageViewer(yimage::Image img)
+    explicit ImageViewer(Yimage::Image img)
         : img_(std::move(img))
     {
         pos_calculator_.set_view_angle(Xyz::to_radians(scale_));
@@ -282,12 +282,13 @@ private:
                   + motion.azimuth_speed * factor;
         auto po = Xyz::clamp(motion.origin.polar + motion.polar_speed * factor,
                              -pi / 2, pi / 2);
+
         return Xyz::SphericalPointD(1.0, az, po);
     }
 
     int scale_ = 60;
     Xyz::Vector2D mouse_pos_;
-    yimage::Image img_;
+    Yimage::Image img_;
     SpherePosCalculator pos_calculator_;
     bool is_panning_ = false;
     std::unique_ptr<Cross> cross_;
@@ -306,11 +307,11 @@ int main(int argc, char* argv[])
                        .help("An image file (PNG or JPEG)."));
         Tungsten::SdlApplication::add_command_line_options(parser);
         auto args = parser.parse(argc, argv);
-        yimage::Image img;
+        Yimage::Image img;
         if (auto img_arg = args.value("IMAGE"))
-            img = yimage::read_image(img_arg.as_string());
-        else
-            img = yimage::read_jpeg(DEFAULT_IMAGE, std::size(DEFAULT_IMAGE) - 1);
+            img = Yimage::read_image(img_arg.as_string());
+        //else
+        //    img = Yimage::read_jpeg(DEFAULT_IMAGE, std::size(DEFAULT_IMAGE) - 1);
         auto event_loop = std::make_unique<ImageViewer>(img);
         Tungsten::SdlApplication app("ShowPng", std::move(event_loop));
         #ifndef __EMSCRIPTEN__

@@ -12,7 +12,7 @@ FetchContent_Declare(tungsten
     GIT_TAG v0.3.0)
 FetchContent_Declare(yimage
     GIT_REPOSITORY "https://github.com/jebreimo/Yimage.git"
-    GIT_TAG v0.1.3)
+    GIT_TAG main)
 FetchContent_Declare(xyz
     GIT_REPOSITORY "https://github.com/jebreimo/Xyz.git"
     GIT_TAG v0.2.89)

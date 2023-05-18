@@ -9,4 +9,4 @@
 #include <utility>
 #include <Yimage/PixelType.hpp>
 
-std::pair<int, int> get_ogl_pixel_type(yimage::PixelType type);
+std::pair<int, int> get_ogl_pixel_type(Yimage::PixelType type);

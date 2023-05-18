@@ -14,7 +14,11 @@
 class Sphere
 {
 public:
-    Sphere(const yimage::Image& img, int circles, int points);
+    Sphere(int circles, int points);
+
+    Sphere(const Yimage::Image& img, int circles, int points);
+
+    void set_image(const Yimage::Image& img);
 
     void draw(const Xyz::Matrix4F& mv_matrix, const Xyz::Matrix4F& p_matrix);
 
