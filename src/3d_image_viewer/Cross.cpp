@@ -20,7 +20,7 @@ Cross::Cross()
     Tungsten::bind_buffer(GL_ARRAY_BUFFER, buffer_);
     Tungsten::set_buffer_data(GL_ARRAY_BUFFER, sizeof(array),
                               array, GL_STATIC_DRAW);
-    count_ = std::size(array);
+    count_ = std::size(array) / 3;
     program_.setup();
     Tungsten::use_program(program_.program);
     program_.color.set({1.f, 1.f, 0.f, 1.f});
