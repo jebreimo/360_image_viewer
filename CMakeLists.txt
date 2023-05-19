@@ -57,12 +57,12 @@ tungsten_target_embed_shaders(3d_image_viewer
         src/3d_image_viewer/Unicolor3D-vert.glsl
     )
 
-target_embed_cpp_data(3d_image_viewer
-    INCLUDE_DIRS
-        data
-    FILES
-        src/3d_image_viewer/DefaultImage.hpp.in
-    )
+#target_embed_cpp_data(3d_image_viewer
+#    INCLUDE_DIRS
+#        data
+#    FILES
+#        src/3d_image_viewer/DefaultImage.hpp.in
+#    )
 
 if (EMSCRIPTEN)
     target_link_options(3d_image_viewer

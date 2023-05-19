@@ -11,7 +11,6 @@
 #include <Tungsten/Tungsten.hpp>
 #include <Yimage/Yimage.hpp>
 #include "Cross.hpp"
-#include "DefaultImage.hpp"
 #include "RingBuffer.hpp"
 #include "Sphere.hpp"
 #include "SpherePosCalculator.hpp"
@@ -310,8 +309,6 @@ int main(int argc, char* argv[])
         Yimage::Image img;
         if (auto img_arg = args.value("IMAGE"))
             img = Yimage::read_image(img_arg.as_string());
-        //else
-        //    img = Yimage::read_jpeg(DEFAULT_IMAGE, std::size(DEFAULT_IMAGE) - 1);
         auto event_loop = std::make_unique<ImageViewer>(img);
         Tungsten::SdlApplication app("ShowPng", std::move(event_loop));
         #ifndef __EMSCRIPTEN__
