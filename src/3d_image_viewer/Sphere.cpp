@@ -141,7 +141,7 @@ namespace
     {
         constexpr size_t WIDTH = 512;
         constexpr size_t HEIGHT = WIDTH / 2;
-        Yimage::Image img(Yimage::PixelType::RGBA_8, WIDTH, HEIGHT);
+        Yimage::Image img(Yimage::PixelType::RGB_8, WIDTH, HEIGHT);
         // Blue sky
         Yimage::fill_rgba8(img.mut_subimage(0, 0, WIDTH, HEIGHT / 2),
                            {0x99, 0xAA, 0xEE, 0xFF});
