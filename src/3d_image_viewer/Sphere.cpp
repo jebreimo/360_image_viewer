@@ -143,10 +143,10 @@ namespace
         constexpr size_t HEIGHT = WIDTH / 2;
         Yimage::Image img(Yimage::PixelType::RGB_8, WIDTH, HEIGHT);
         // Blue sky
-        Yimage::fill_rgba8(img.mut_subimage(0, 0, WIDTH, HEIGHT / 2),
+        Yimage::fill_rgba8(img.mutable_subimage(0, 0, WIDTH, HEIGHT / 2),
                            {0x99, 0xAA, 0xEE, 0xFF});
         // Green ground
-        Yimage::fill_rgba8(img.mut_subimage(0, HEIGHT / 2, WIDTH, HEIGHT),
+        Yimage::fill_rgba8(img.mutable_subimage(0, HEIGHT / 2, WIDTH, HEIGHT),
                            {0x88, 0xDD, 0x33, 0xFF});
         return img;
     }
