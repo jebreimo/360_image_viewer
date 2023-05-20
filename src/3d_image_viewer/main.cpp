@@ -104,7 +104,7 @@ private:
     {
         if (event.wheel.y > 0)
             scale_ += 4;
-        else
+        else if (event.wheel.y < 0)
             scale_ -= 4;
 
         if (scale_ > 120)
