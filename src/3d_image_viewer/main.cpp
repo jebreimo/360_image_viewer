@@ -62,6 +62,27 @@ public:
         cross_ = std::make_unique<Cross>();
     }
 
+    bool on_finger_down(Tungsten::SdlApplication& application, const SDL_Event& event)
+    {
+        const auto& tf = event.tfinger;
+        JEB_SHOW(tf.type, tf.fingerId, tf.timestamp, tf.touchId, tf.dx, tf.dy);
+        return true;
+    }
+
+    bool on_finger_up(Tungsten::SdlApplication& application, const SDL_Event& event)
+    {
+        const auto& tf = event.tfinger;
+        JEB_SHOW(tf.type, tf.fingerId, tf.timestamp, tf.touchId, tf.dx, tf.dy);
+        return true;
+    }
+
+    bool on_finger_motion(Tungsten::SdlApplication& application, const SDL_Event& event)
+    {
+        const auto& tf = event.tfinger;
+        JEB_SHOW(tf.type, tf.fingerId, tf.timestamp, tf.touchId, tf.dx, tf.dy);
+        return true;
+    }
+
     bool on_event(Tungsten::SdlApplication& app, const SDL_Event& event) override
     {
         switch (event.type)
@@ -76,6 +97,14 @@ public:
             return on_mouse_button_up(app, event);
         case SDL_KEYDOWN:
             return on_key_down(app, event);
+        case SDL_FINGERDOWN:
+            return on_finger_down(app, event);
+        case SDL_FINGERUP:
+            return on_finger_up(app, event);
+        case SDL_FINGERMOTION:
+            return on_finger_motion(app, event);
+        case SDL_MULTIGESTURE:
+            return on_multi_gesture(app, event);
         default:
             return false;
         }
@@ -112,21 +141,34 @@ public:
     }
 
 private:
+    void zoom_in()
+    {
+        scale_ += 4;
+        if (scale_ > 120)
+            scale_ = 120;
+        pos_calculator_.set_view_angle(Xyz::to_radians(scale_));
+        redraw();
+    }
+
+    void zoom_out()
+    {
+        scale_ -= 4;
+        if (scale_ < 8)
+            scale_ = 4;
+        pos_calculator_.set_view_angle(Xyz::to_radians(scale_));
+        redraw();
+
+    }
+
     bool on_mouse_wheel(const Tungsten::SdlApplication&,
                         const SDL_Event& event)
     {
-        if (event.wheel.y > 0)
-            scale_ += 4;
-        else if (event.wheel.y < 0)
-            scale_ -= 4;
-
-        if (scale_ > 120)
-            scale_ = 120;
-        else if (scale_ < 8)
-            scale_ = 4;
-
-        pos_calculator_.set_view_angle(Xyz::to_radians(scale_));
-        redraw();
+        auto value = event.wheel.y != 0 ? float(event.wheel.y)
+                                        : event.wheel.preciseY;
+        if (value > 0)
+            zoom_in();
+        else if (value < 0)
+            zoom_out();
         return true;
     }
 
@@ -191,7 +233,7 @@ private:
         return true;
     }
 
-    bool on_key_down(const Tungsten::SdlApplication&,
+    bool on_key_down(const Tungsten::SdlApplication& app,
                      const SDL_Event& event)
     {
         if (event.key.repeat)
@@ -204,7 +246,28 @@ private:
             redraw();
             return true;
         }
+        else if (event.key.keysym.sym == SDLK_f)
+        {
+            bool is_fullscreen = SDL_GetWindowFlags(app.window()) & SDL_WINDOW_FULLSCREEN;
+            SDL_SetWindowFullscreen(app.window(), is_fullscreen ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+        }
+
         return false;
+    }
+
+    bool on_multi_gesture(const Tungsten::SdlApplication& app,
+                          const SDL_Event& event)
+    {
+        auto& mg = event.mgesture;
+        JEB_SHOW(mg.numFingers, mg.dDist, mg.dTheta, mg.padding, mg.type);
+        if (mg.numFingers == 2)
+        {
+            if  (mg.dDist < 5)
+                zoom_out();
+            else if (mg.dDist > 5)
+                zoom_in();
+        }
+        return true;
     }
 
     [[nodiscard]]
