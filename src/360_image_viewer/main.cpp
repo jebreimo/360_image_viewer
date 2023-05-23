@@ -255,10 +255,10 @@ private:
         return false;
     }
 
-    bool on_multi_gesture(const Tungsten::SdlApplication& app,
+    bool on_multi_gesture(const Tungsten::SdlApplication&,
                           const SDL_Event& event)
     {
-        auto& mg = event.mgesture;
+        const auto& mg = event.mgesture;
         JEB_SHOW(mg.numFingers, mg.dDist, mg.dTheta, mg.padding, mg.type);
         if (mg.numFingers == 2)
         {
