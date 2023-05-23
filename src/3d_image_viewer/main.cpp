@@ -42,6 +42,19 @@ public:
         pos_calculator_.set_eye_dist(0.5);
     }
 
+    void set_image(Yimage::Image img)
+    {
+        img_ = std::move(img);
+        if (sphere_)
+            sphere_->set_image(img_);
+    }
+
+    void set_view_direction(double azimuth, double polar)
+    {
+        pos_calculator_.set_fixed_point({0, 0},
+                                        {1.0, azimuth, polar});
+    }
+
     void on_startup(Tungsten::SdlApplication& app) override
     {
         app.set_swap_interval(1);
@@ -296,6 +309,34 @@ private:
     std::optional<ScreenMotion> motion_;
 };
 
+Tungsten::SdlApplication the_app;
+
+extern "C"
+{
+    void load_image(const char* file_path, int azimuth, int polar)
+    {
+        try
+        {
+            JEB_SHOW(file_path, azimuth, polar);
+            auto* viewer = dynamic_cast<ImageViewer*>(the_app.event_loop());
+            if (!viewer)
+            {
+                std::cerr << "The ImageViewer has not been initialized yet.\n";
+                return;
+            }
+            viewer->clear_redraw();
+            viewer->set_image(Yimage::read_image(file_path));
+            viewer->set_view_direction(Xyz::to_radians(azimuth),
+                                      Xyz::to_radians(polar));
+            viewer->redraw();
+        }
+        catch (std::exception& ex)
+        {
+            std::cerr << ex.what() << "\n";
+        }
+    }
+}
+
 int main(int argc, char* argv[])
 {
     try
@@ -310,16 +351,16 @@ int main(int argc, char* argv[])
         if (auto img_arg = args.value("IMAGE"))
             img = Yimage::read_image(img_arg.as_string());
         auto event_loop = std::make_unique<ImageViewer>(img);
-        Tungsten::SdlApplication app("ShowPng", std::move(event_loop));
+        the_app = Tungsten::SdlApplication("ShowPng", std::move(event_loop));
         #ifndef __EMSCRIPTEN__
-        app.set_event_loop_mode(Tungsten::EventLoopMode::WAIT_FOR_EVENTS);
+        the_app.set_event_loop_mode(Tungsten::EventLoopMode::WAIT_FOR_EVENTS);
         #endif
-        app.read_command_line_options(args);
-        app.run();
+        the_app.read_command_line_options(args);
+        the_app.run();
     }
     catch (std::exception& ex)
     {
-        std::cout << ex.what() << "\n";
+        std::cerr << ex.what() << "\n";
         return 1;
     }
     return 0;

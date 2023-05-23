@@ -9,10 +9,10 @@ FetchContent_Declare(argos
     GIT_TAG v1.1.270)
 FetchContent_Declare(tungsten
     GIT_REPOSITORY "https://github.com/jebreimo/Tungsten.git"
-    GIT_TAG v0.3.0)
+    GIT_TAG master)
 FetchContent_Declare(yimage
     GIT_REPOSITORY "https://github.com/jebreimo/Yimage.git"
-    GIT_TAG main)
+    GIT_TAG v0.1.4)
 FetchContent_Declare(xyz
     GIT_REPOSITORY "https://github.com/jebreimo/Xyz.git"
     GIT_TAG v0.2.89)
@@ -67,7 +67,10 @@ tungsten_target_embed_shaders(3d_image_viewer
 if (EMSCRIPTEN)
     target_link_options(3d_image_viewer
         PRIVATE
-            -s ALLOW_MEMORY_GROWTH=1
+            -sALLOW_MEMORY_GROWTH=1
+            -sEXPORTED_FUNCTIONS=['_main','_load_image']
+            -sEXPORTED_RUNTIME_METHODS=['ccall']
+            -sFORCE_FILESYSTEM=1
         )
     set(EMSCRIPTEN_TARGET_NAME 3d_image_viewer)
     configure_file(src/emscripten/index.html.in index.html)

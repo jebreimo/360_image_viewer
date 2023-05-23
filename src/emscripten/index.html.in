@@ -15,6 +15,14 @@
         })()
       };
     </script>
+    <script type='text/javascript'>
+      Module.onRuntimeInitialized = async (_) => {
+        const imgBlob = await fetch("http://localhost:8011/venice.jpg").then((resp) => resp.arrayBuffer());
+        const uint8_view = new Uint8Array(imgBlob);
+        FS.writeFile("image.tmp", uint8_view);
+        Module.ccall('load_image', null, ['string', 'number', 'number'], ['image.tmp', 90, 0]);
+      }
+     </script>
     <script src="@EMSCRIPTEN_TARGET_NAME@.js"></script>
   </body>
 </html>
