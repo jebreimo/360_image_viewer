@@ -8,6 +8,7 @@
 #pragma once
 #include <Tungsten/Tungsten.hpp>
 #include <Yimage/Yimage.hpp>
+#include <Yimage/ImageAlgorithms.hpp>
 #include "Render3DShaderProgram.hpp"
 #include "Unicolor3DShaderProgram.hpp"
 

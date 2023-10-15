@@ -6,8 +6,8 @@
 // License text is included with the source distribution.
 //****************************************************************************
 #include "Sphere.hpp"
+#include <Tungsten/YimageGl.hpp>
 #include "ObjFileWriter.hpp"
-#include "YimageGl.hpp"
 
 namespace
 {
@@ -217,7 +217,7 @@ void Sphere::set_image(const Yimage::Image& img)
 {
     Tungsten::bind_texture(GL_TEXTURE_2D, texture_);
 
-    auto [format, type] = get_ogl_pixel_type(img.pixel_type());
+    auto [format, type] = Tungsten::get_ogl_pixel_type(img.pixel_type());
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     Tungsten::set_texture_image_2d(GL_TEXTURE_2D, 0, GL_RGB,
                                    int(img.width()), int(img.height()),

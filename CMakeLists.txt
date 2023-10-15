@@ -6,16 +6,16 @@ set(CMAKE_CXX_STANDARD 17)
 include(FetchContent)
 FetchContent_Declare(argos
     GIT_REPOSITORY "https://github.com/jebreimo/Argos.git"
-    GIT_TAG v1.1.270)
+    GIT_TAG v1.2.0)
 FetchContent_Declare(tungsten
     GIT_REPOSITORY "https://github.com/jebreimo/Tungsten.git"
-    GIT_TAG v0.3.1)
+    GIT_TAG master)
 FetchContent_Declare(yimage
     GIT_REPOSITORY "https://github.com/jebreimo/Yimage.git"
-    GIT_TAG v0.1.4)
+    GIT_TAG v0.1.6)
 FetchContent_Declare(xyz
     GIT_REPOSITORY "https://github.com/jebreimo/Xyz.git"
-    GIT_TAG v0.2.89)
+    GIT_TAG v0.2.91)
 FetchContent_MakeAvailable(argos tungsten yimage xyz)
 
 list(APPEND CMAKE_MODULE_PATH ${tungsten_SOURCE_DIR}/tools/cmake)
@@ -34,8 +34,6 @@ add_executable(360_image_viewer
     src/360_image_viewer/SpherePosCalculator.hpp
     src/360_image_viewer/Unicolor3DShaderProgram.cpp
     src/360_image_viewer/Unicolor3DShaderProgram.hpp
-    src/360_image_viewer/YimageGl.cpp
-    src/360_image_viewer/YimageGl.hpp
     src/360_image_viewer/Cross.cpp
     src/360_image_viewer/Cross.hpp
     src/360_image_viewer/Sphere.cpp

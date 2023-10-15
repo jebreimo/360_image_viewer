@@ -14,7 +14,6 @@
 #include "RingBuffer.hpp"
 #include "Sphere.hpp"
 #include "SpherePosCalculator.hpp"
-#include "YimageGl.hpp"
 #include "Debug.hpp"
 
 constexpr double MAX_CENTER_POINT_AGE = 0.05;
