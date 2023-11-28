@@ -8,9 +8,17 @@
 #pragma once
 #include <Tungsten/Tungsten.hpp>
 #include <Yimage/Yimage.hpp>
-#include <Yimage/ImageAlgorithms.hpp>
 #include "Render3DShaderProgram.hpp"
 #include "Unicolor3DShaderProgram.hpp"
+
+namespace Detail
+{
+    struct Vertex
+    {
+        Xyz::Vector3F pos;
+        Xyz::Vector2F tex;
+    };
+}
 
 class Sphere
 {
@@ -26,9 +34,8 @@ public:
     bool show_mesh = false;
 private:
     int line_count_ = 0;
-    int count_ = 0;
     std::vector<Tungsten::BufferHandle> buffers_;
-    Tungsten::VertexArrayHandle vertex_array_;
+    Tungsten::VertexArray<Detail::Vertex> vertex_array_;
     Tungsten::TextureHandle texture_;
     Render3DShaderProgram program_;
     Unicolor3DShaderProgram line_program_;

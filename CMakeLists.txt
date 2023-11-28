@@ -1,18 +1,18 @@
 cmake_minimum_required(VERSION 3.23)
 project(360_image_viewer VERSION 0.1.0)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 include(FetchContent)
 FetchContent_Declare(argos
     GIT_REPOSITORY "https://github.com/jebreimo/Argos.git"
-    GIT_TAG v1.2.0)
+    GIT_TAG v1.2.1)
 FetchContent_Declare(tungsten
     GIT_REPOSITORY "https://github.com/jebreimo/Tungsten.git"
     GIT_TAG master)
 FetchContent_Declare(yimage
     GIT_REPOSITORY "https://github.com/jebreimo/Yimage.git"
-    GIT_TAG v0.1.6)
+    GIT_TAG v0.1.7)
 FetchContent_Declare(xyz
     GIT_REPOSITORY "https://github.com/jebreimo/Xyz.git"
     GIT_TAG v0.2.91)
@@ -38,7 +38,10 @@ add_executable(360_image_viewer
     src/360_image_viewer/Cross.hpp
     src/360_image_viewer/Sphere.cpp
     src/360_image_viewer/Sphere.hpp
-    src/360_image_viewer/RingBuffer.hpp)
+    src/360_image_viewer/RingBuffer.hpp
+    src/360_image_viewer/HelveticaNeue32.hpp
+    src/360_image_viewer/Hud.cpp
+    src/360_image_viewer/Hud.hpp)
 
 target_link_libraries(360_image_viewer
     PRIVATE
@@ -49,10 +52,10 @@ target_link_libraries(360_image_viewer
 
 tungsten_target_embed_shaders(360_image_viewer
     FILES
-    src/360_image_viewer/Render3D-frag.glsl
-    src/360_image_viewer/Render3D-vert.glsl
-    src/360_image_viewer/Unicolor3D-frag.glsl
-    src/360_image_viewer/Unicolor3D-vert.glsl
+    src/360_image_viewer/shaders/Render3D-frag.glsl
+    src/360_image_viewer/shaders/Render3D-vert.glsl
+    src/360_image_viewer/shaders/Unicolor3D-frag.glsl
+    src/360_image_viewer/shaders/Unicolor3D-vert.glsl
     )
 
 #target_embed_cpp_data(360_image_viewer

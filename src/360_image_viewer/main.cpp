@@ -389,7 +389,7 @@ extern "C"
             viewer->clear_redraw();
             viewer->set_image(Yimage::read_image(file_path));
             viewer->set_view_direction(Xyz::to_radians(azimuth),
-                                      Xyz::to_radians(polar));
+                                       Xyz::to_radians(polar));
             viewer->redraw();
         }
         catch (std::exception& ex)

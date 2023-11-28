@@ -6,24 +6,17 @@
 // License text is included with the source distribution.
 //****************************************************************************
 #include "Sphere.hpp"
-#include <Tungsten/YimageGl.hpp>
 #include "ObjFileWriter.hpp"
 
 namespace
 {
-    struct Vertex
-    {
-        Xyz::Vector3F pos;
-        Xyz::Vector2F tex;
-    };
-
-    Tungsten::ArrayBuffer<Vertex> make_sphere(int circles, int points)
+    Tungsten::ArrayBuffer<Detail::Vertex> make_sphere(int circles, int points)
     {
         if (circles < 2)
             throw std::runtime_error("Number of circles must be at least 2.");
         if (points < 3)
             throw std::runtime_error("Number of points must be at least 3.");
-        Tungsten::ArrayBuffer<Vertex> result;
+        Tungsten::ArrayBuffer<Detail::Vertex> result;
         Tungsten::ArrayBufferBuilder builder(result);
 
         constexpr auto PI = Xyz::Constants<float>::PI;
@@ -86,7 +79,7 @@ namespace
         return result;
     }
 
-    void write(std::ostream& os, Tungsten::ArrayBuffer<Vertex>& buffer)
+    void write(std::ostream& os, Tungsten::ArrayBuffer<Detail::Vertex>& buffer)
     {
         ObjFileWriter writer(os);
         for (const auto& vertex: buffer.vertexes)
@@ -159,29 +152,15 @@ Sphere::Sphere(int circles, int points)
 Sphere::Sphere(const Yimage::Image& img, int circles, int points)
 {
     auto array = make_sphere(circles, points);
-    vertex_array_ = Tungsten::generate_vertex_array();
-    Tungsten::bind_vertex_array(vertex_array_);
-
-    buffers_ = Tungsten::generate_buffers(2);
-
-    auto [vertexes, vertexes_size] = array.array_buffer();
-    Tungsten::bind_buffer(GL_ARRAY_BUFFER, buffers_[0]);
-    Tungsten::set_buffer_data(GL_ARRAY_BUFFER, GLsizeiptr(vertexes_size),
-                              vertexes, GL_STATIC_DRAW);
-
-    count_ = int(array.indexes.size());
+    auto count = int(array.indexes.size());
 
     triangle_indexes_to_lines(array.indexes.data(),
                               array.indexes.size(),
                               array.indexes);
 
-    line_count_ = int(array.indexes.size()) - count_;
-    auto [indexes, index_size] = array.index_buffer();
+    line_count_ = int(array.indexes.size()) - count;
 
-    Tungsten::bind_buffer(GL_ELEMENT_ARRAY_BUFFER, buffers_[1]);
-    Tungsten::set_buffer_data(GL_ELEMENT_ARRAY_BUFFER,
-                              GLsizeiptr(index_size),
-                              indexes, GL_STATIC_DRAW);
+    Tungsten::set_buffers(vertex_array_, array);
 
     texture_ = Tungsten::generate_texture();
     Tungsten::bind_texture(GL_TEXTURE_2D, texture_);
@@ -198,18 +177,16 @@ Sphere::Sphere(const Yimage::Image& img, int circles, int points)
 
     program_.setup();
     Tungsten::use_program(program_.program);
-    Tungsten::define_vertex_attribute_float_pointer(
-        program_.position, 3, 5 * sizeof(float), 0);
+    vertex_array_.define_float_pointer(program_.position, 3, 0);
     Tungsten::enable_vertex_attribute(program_.position);
-    Tungsten::define_vertex_attribute_float_pointer(
-        program_.texture_coord, 2, 5 * sizeof(float), 3 * sizeof(float));
+    vertex_array_.define_float_pointer(
+        program_.texture_coord, 2, 3 * sizeof(float));
     Tungsten::enable_vertex_attribute(program_.texture_coord);
 
     line_program_.setup();
     Tungsten::use_program(line_program_.program);
     line_program_.color.set({1.f, 0.f, 0.f, 1.f});
-    Tungsten::define_vertex_attribute_float_pointer(
-        line_program_.position, 3, 5 * sizeof(float), 0);
+    vertex_array_.define_float_pointer(line_program_.position, 3, 0);
     Tungsten::enable_vertex_attribute(line_program_.position);
 }
 
@@ -229,17 +206,18 @@ void Sphere::draw(const Xyz::Matrix4F& mv_matrix,
                   const Xyz::Matrix4F& p_matrix)
 {
     Tungsten::bind_texture(GL_TEXTURE_2D, texture_);
-    Tungsten::bind_vertex_array(vertex_array_);
+    vertex_array_.bind();
     Tungsten::use_program(program_.program);
     program_.mv_matrix.set(mv_matrix);
     program_.p_matrix.set(p_matrix);
-    Tungsten::draw_triangle_elements_16(0, count_);
+    auto triangle_count = int(vertex_array_.indexes.size() - line_count_);
+    Tungsten::draw_triangle_elements_16(0, triangle_count);
 
     if (show_mesh)
     {
         Tungsten::use_program(line_program_.program);
         line_program_.mv_matrix.set(mv_matrix);
         line_program_.p_matrix.set(p_matrix);
-        Tungsten::draw_line_elements_16(count_, line_count_);
+        Tungsten::draw_line_elements_16(triangle_count, line_count_);
     }
 }
