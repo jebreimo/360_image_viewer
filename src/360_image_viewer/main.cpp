@@ -11,10 +11,12 @@
 #include <Tungsten/Tungsten.hpp>
 #include <Yimage/Yimage.hpp>
 #include "Cross.hpp"
+#include "Hud.hpp"
 #include "RingBuffer.hpp"
 #include "Sphere.hpp"
 #include "SpherePosCalculator.hpp"
 #include "Debug.hpp"
+#include "HelveticaNeue32.hpp"
 
 constexpr double MAX_CENTER_POINT_AGE = 0.05;
 constexpr double MAX_SPEED = 4;
@@ -59,6 +61,10 @@ public:
         app.set_swap_interval(1);
         sphere_ = std::make_unique<Sphere>(img_, 16, 60);
         cross_ = std::make_unique<Cross>();
+        hud_ = std::make_unique<Hud>();
+
+        auto& fm = Tungsten::FontManager::instance();
+        fm.add_font(get_helveticaneue_32());
     }
 
     bool on_finger_down(Tungsten::SdlApplication& application, const SDL_Event& event)
@@ -122,6 +128,8 @@ public:
         }
 
         pos_calculator_.set_fixed_point({0, 0}, *position);
+        auto degrees = Xyz::to_degrees(*position);
+        hud_->set_angles(degrees.azimuth, degrees.polar);
         redraw();
     }
 
@@ -134,6 +142,7 @@ public:
         auto p_matrix = get_p_matrix(app);
         sphere_->draw(mv_matrix, p_matrix);
         cross_->draw();
+        hud_->draw(Xyz::Vector2F(app.window_size()));
 
         if (motion_)
             redraw();
@@ -183,9 +192,12 @@ private:
         {
             pos_calculator_.set_fixed_point(new_mouse_pos,
                                             pos_calculator_.fixed_point().second);
+            auto center = Xyz::to_spherical(pos_calculator_.calc_center_pos());
+            auto degrees = Xyz::to_degrees(center);
+            hud_->set_angles(degrees.azimuth, degrees.polar);
             prev_center_points_.push({
                 std::chrono::high_resolution_clock::now(),
-                Xyz::to_spherical(pos_calculator_.calc_center_pos())
+                center
             });
             redraw();
         }
@@ -354,6 +366,10 @@ private:
         auto factor = 0.25 * std::sqrt(secs * (2 * radius - secs));
         auto az = motion.origin.azimuth
                   + motion.azimuth_speed * factor;
+        if (az < -pi)
+            az += 2 * pi;
+        else if (az > pi)
+            az -= 2 * pi;
         auto po = Xyz::clamp(motion.origin.polar + motion.polar_speed * factor,
                              -pi / 2, pi / 2);
 
@@ -367,6 +383,7 @@ private:
     bool is_panning_ = false;
     std::unique_ptr<Cross> cross_;
     std::unique_ptr<Sphere> sphere_;
+    std::unique_ptr<Hud> hud_;
     PrevPositionList prev_center_points_;
     std::optional<ScreenMotion> motion_;
 };

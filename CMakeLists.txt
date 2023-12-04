@@ -10,13 +10,16 @@ FetchContent_Declare(argos
 FetchContent_Declare(tungsten
     GIT_REPOSITORY "https://github.com/jebreimo/Tungsten.git"
     GIT_TAG master)
+FetchContent_Declare(yconvert
+    GIT_REPOSITORY "https://github.com/jebreimo/Yconvert.git"
+    GIT_TAG master)
 FetchContent_Declare(yimage
     GIT_REPOSITORY "https://github.com/jebreimo/Yimage.git"
-    GIT_TAG v0.1.7)
+    GIT_TAG main)
 FetchContent_Declare(xyz
     GIT_REPOSITORY "https://github.com/jebreimo/Xyz.git"
-    GIT_TAG v0.2.91)
-FetchContent_MakeAvailable(argos tungsten yimage xyz)
+    GIT_TAG v0.3.0)
+FetchContent_MakeAvailable(argos tungsten yconvert yimage xyz)
 
 list(APPEND CMAKE_MODULE_PATH ${tungsten_SOURCE_DIR}/tools/cmake)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/tools/cppembed)
@@ -47,6 +50,7 @@ target_link_libraries(360_image_viewer
     PRIVATE
         Argos::Argos
         Tungsten::Tungsten
+        Yconvert::Yconvert
         Yimage::Yimage
     )
 
