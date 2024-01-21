@@ -22,6 +22,9 @@ public:
     Xyz::SphericalPointD calc_sphere_pos(const Xyz::Vector2D& screen_pos);
 
     [[nodiscard]]
+    Xyz::SphericalPointD calc_center_sphere_pos();
+
+    [[nodiscard]]
     Xyz::Vector3D calc_up_vector();
 
     [[nodiscard]]

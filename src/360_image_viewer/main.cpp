@@ -5,7 +5,6 @@
 // This file is distributed under the BSD License.
 // License text is included with the source distribution.
 //****************************************************************************
-#include <chrono>
 #include <iostream>
 #include <Argos/Argos.hpp>
 #include <Tungsten/Tungsten.hpp>
@@ -20,6 +19,7 @@
 
 constexpr double MAX_CENTER_POINT_AGE = 0.05;
 constexpr double MAX_SPEED = 4;
+constexpr int MAX_ZOOM_LEVEL = 33;
 
 using time_point = std::chrono::high_resolution_clock::time_point;
 using PrevPositionList = RingBuffer<std::pair<time_point, Xyz::SphericalPointD>, 4>;
@@ -33,13 +33,31 @@ struct ScreenMotion
     double polar_speed = 0;
 };
 
+double get_view_angle(int zoom_level)
+{
+    int angle;
+    if (zoom_level < 0)
+        angle = 4;
+    else if (zoom_level < 5)
+        angle = 4 + zoom_level;
+    else if (zoom_level < 11)
+        angle = 10 + 2 * (zoom_level - 5);
+    else if (zoom_level < 31)
+        angle = 24 + 4 * (zoom_level - 11);
+    else if (zoom_level < 33)
+        angle = 106 + 6 * (zoom_level - 31);
+    else
+        angle = 120;
+    return Xyz::to_radians(angle);
+}
+
 class ImageViewer : public Tungsten::EventLoop
 {
 public:
     explicit ImageViewer(Yimage::Image img)
         : img_(std::move(img))
     {
-        pos_calculator_.set_view_angle(Xyz::to_radians(scale_));
+        pos_calculator_.set_view_angle(get_view_angle(zoom_level_));
         pos_calculator_.set_eye_dist(0.5);
     }
 
@@ -58,34 +76,19 @@ public:
 
     void on_startup(Tungsten::SdlApplication& app) override
     {
-        app.set_swap_interval(1);
+        app.throttle_events(SDL_MOUSEWHEEL, 50);
+        app.throttle_events(SDL_MULTIGESTURE, 50);
+        set_swap_interval(app, Tungsten::SwapInterval::ADAPTIVE_VSYNC_OR_VSYNC);
         sphere_ = std::make_unique<Sphere>(img_, 16, 60);
         cross_ = std::make_unique<Cross>();
         hud_ = std::make_unique<Hud>();
 
+        auto center = to_degrees(pos_calculator_.calc_center_sphere_pos());
+        hud_->set_angles(center.azimuth, center.polar);
+        hud_->set_zoom(zoom_level_);
+
         auto& fm = Tungsten::FontManager::instance();
         fm.add_font(get_helveticaneue_32());
-    }
-
-    bool on_finger_down(Tungsten::SdlApplication& application, const SDL_Event& event)
-    {
-        const auto& tf = event.tfinger;
-        JEB_SHOW(tf.type, tf.fingerId, tf.timestamp, tf.touchId, tf.dx, tf.dy);
-        return true;
-    }
-
-    bool on_finger_up(Tungsten::SdlApplication& application, const SDL_Event& event)
-    {
-        const auto& tf = event.tfinger;
-        JEB_SHOW(tf.type, tf.fingerId, tf.timestamp, tf.touchId, tf.dx, tf.dy);
-        return true;
-    }
-
-    bool on_finger_motion(Tungsten::SdlApplication& application, const SDL_Event& event)
-    {
-        const auto& tf = event.tfinger;
-        JEB_SHOW(tf.type, tf.fingerId, tf.timestamp, tf.touchId, tf.dx, tf.dy);
-        return true;
     }
 
     bool on_event(Tungsten::SdlApplication& app, const SDL_Event& event) override
@@ -93,23 +96,17 @@ public:
         switch (event.type)
         {
         case SDL_MOUSEWHEEL:
-            return on_mouse_wheel(app, event);
+            return on_mouse_wheel(app, event.wheel);
         case SDL_MOUSEMOTION:
-            return on_mouse_motion(app, event);
+            return on_mouse_motion(app, event.motion);
         case SDL_MOUSEBUTTONDOWN:
-            return on_mouse_button_down(app, event);
+            return on_mouse_button_down(app, event.button);
         case SDL_MOUSEBUTTONUP:
-            return on_mouse_button_up(app, event);
+            return on_mouse_button_up(app, event.button);
         case SDL_KEYDOWN:
-            return on_key_down(app, event);
-        case SDL_FINGERDOWN:
-            return on_finger_down(app, event);
-        case SDL_FINGERUP:
-            return on_finger_up(app, event);
-        case SDL_FINGERMOTION:
-            return on_finger_motion(app, event);
+            return on_key_down(app, event.key);
         case SDL_MULTIGESTURE:
-            return on_multi_gesture(app, event);
+            return on_multi_gesture(app, event.mgesture);
         default:
             return false;
         }
@@ -148,45 +145,45 @@ public:
             redraw();
     }
 
+    void set_zoom_level(int zoom_level)
+    {
+        zoom_level = std::clamp(zoom_level, 0, MAX_ZOOM_LEVEL);
+        if (zoom_level != zoom_level_)
+        {
+            zoom_level_ = zoom_level;
+            pos_calculator_.set_view_angle(get_view_angle(zoom_level_));
+            hud_->set_zoom(zoom_level_);
+            redraw();
+        }
+    }
 private:
-    void zoom_in()
+    void zoom_out(int n = 1)
     {
-        scale_ += 4;
-        if (scale_ > 120)
-            scale_ = 120;
-        pos_calculator_.set_view_angle(Xyz::to_radians(scale_));
-        redraw();
+        set_zoom_level(zoom_level_ + n);
     }
 
-    void zoom_out()
+    void zoom_in(int n = 1)
     {
-        scale_ -= 4;
-        if (scale_ < 8)
-            scale_ = 4;
-        pos_calculator_.set_view_angle(Xyz::to_radians(scale_));
-        redraw();
-
-    }
+        set_zoom_level(zoom_level_ - n);
+   }
 
     bool on_mouse_wheel(const Tungsten::SdlApplication&,
-                        const SDL_Event& event)
+                        const SDL_MouseWheelEvent& event)
     {
-        auto value = event.wheel.y != 0 ? float(event.wheel.y)
-                                        : event.wheel.preciseY;
-        if (value > 0)
-            zoom_in();
-        else if (value < 0)
-            zoom_out();
+        if (event.y > 1)
+            zoom_out(event.y > 2 ? 2 : 1);
+        else if (event.y < -1)
+            zoom_in(event.y < -2 ? 2 : 1);
         return true;
     }
 
     bool on_mouse_motion(const Tungsten::SdlApplication& app,
-                         const SDL_Event& event)
+                         const SDL_MouseMotionEvent& event)
     {
         auto [w, h] = app.window_size();
         Xyz::Vector2D new_mouse_pos(
-            2.0 * event.motion.x / double(w) - 1,
-            2.0 * (h - event.motion.y) / double(h) - 1);
+            2.0 * event.x / double(w) - 1,
+            2.0 * (h - event.y) / double(h) - 1);
 
         if (is_panning_)
         {
@@ -207,9 +204,9 @@ private:
     }
 
     bool on_mouse_button_down(const Tungsten::SdlApplication&,
-                              const SDL_Event& event)
+                              const SDL_MouseButtonEvent& event)
     {
-        if (event.button.button == SDL_BUTTON_LEFT)
+        if (event.button == SDL_BUTTON_LEFT)
         {
             auto center = Xyz::to_spherical(pos_calculator_.calc_center_pos());
             prev_center_points_.clear();
@@ -220,20 +217,13 @@ private:
                 pos_calculator_.calc_sphere_pos(mouse_pos_));
             motion_ = {};
         }
-        else if (event.button.button == SDL_BUTTON_RIGHT)
-        {
-            auto pos = pos_calculator_.calc_sphere_pos(mouse_pos_);
-            std::clog << mouse_pos_ << " -> " << Xyz::to_degrees(pos) << "\n";
-            pos = Xyz::to_spherical(pos_calculator_.calc_center_pos());
-            std::clog << "  center: " << Xyz::to_degrees(pos) << "\n";
-        }
         return true;
     }
 
     bool on_mouse_button_up(const Tungsten::SdlApplication&,
-                            const SDL_Event& event)
+                            const SDL_MouseButtonEvent& event)
     {
-        if (event.button.button == SDL_BUTTON_LEFT)
+        if (event.button == SDL_BUTTON_LEFT)
         {
             motion_ = calculate_motion(prev_center_points_);
             if (motion_)
@@ -245,19 +235,20 @@ private:
     }
 
     bool on_key_down(const Tungsten::SdlApplication& app,
-                     const SDL_Event& event)
+                     const SDL_KeyboardEvent& event)
     {
-        if (event.key.repeat)
+        if (event.repeat)
             return true;
 
-        if (event.key.keysym.sym == SDLK_m)
+        if (event.keysym.sym == SDLK_m)
         {
             sphere_->show_mesh = !sphere_->show_mesh;
             cross_->visible = !cross_->visible;
+            hud_->visible = !hud_->visible;
             redraw();
             return true;
         }
-        else if (event.key.keysym.sym == SDLK_f)
+        else if (event.keysym.sym == SDLK_f)
         {
             bool is_fullscreen = SDL_GetWindowFlags(app.window()) & SDL_WINDOW_FULLSCREEN;
             SDL_SetWindowFullscreen(app.window(), is_fullscreen ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
@@ -267,15 +258,15 @@ private:
     }
 
     bool on_multi_gesture(const Tungsten::SdlApplication&,
-                          const SDL_Event& event)
+                          const SDL_MultiGestureEvent& event)
     {
-        const auto& mg = event.mgesture;
-        JEB_SHOW(mg.numFingers, mg.dDist, mg.dTheta, mg.padding, mg.type);
-        if (mg.numFingers == 2)
+        constexpr float THRESHOLD = 0.01;
+        JEB_SHOW(event.numFingers, event.dDist, event.padding, event.type);
+        if (event.numFingers == 2)
         {
-            if  (mg.dDist < 5)
+            if  (event.dDist < -THRESHOLD)
                 zoom_out();
-            else if (mg.dDist > 5)
+            else if (event.dDist > THRESHOLD)
                 zoom_in();
         }
         return true;
@@ -308,7 +299,7 @@ private:
             y = float(h) / float(w);
         }
 
-        double angle = 0.5 * Xyz::to_radians(double(scale_));
+        double angle = 0.5 * get_view_angle(zoom_level_);
         auto size = float(0.5 * sin(angle) / (cos(angle) + 0.5));
         return Xyz::make_frustum_matrix<float>(-size * x, size * x, -size * y, size * y, 0.5f, 2.f);
     }
@@ -340,6 +331,7 @@ private:
         auto max_speed = std::max(std::abs(azimuth_speed),
                                   std::abs(polar_speed));
 
+        JEB_SHOW(secs, azimuth_speed, polar_speed, max_speed);
         auto duration = std::chrono::duration<double>(std::sqrt(max_speed));
         auto end_time = now + duration_cast<high_resolution_clock::duration>(duration);
         return ScreenMotion{now, end_time, pos1, azimuth_speed, polar_speed};
@@ -376,7 +368,7 @@ private:
         return Xyz::SphericalPointD(1.0, az, po);
     }
 
-    int scale_ = 60;
+    int zoom_level_ = 20;
     Xyz::Vector2D mouse_pos_;
     Yimage::Image img_;
     SpherePosCalculator pos_calculator_;
@@ -392,7 +384,8 @@ Tungsten::SdlApplication the_app;
 
 extern "C"
 {
-    void load_image(const char* file_path, int azimuth, int polar)
+    void load_image(const char* file_path,
+                    int azimuth, int polar, int zoom_level)
     {
         try
         {
@@ -407,6 +400,7 @@ extern "C"
             viewer->set_image(Yimage::read_image(file_path));
             viewer->set_view_direction(Xyz::to_radians(azimuth),
                                        Xyz::to_radians(polar));
+            viewer->set_zoom_level(zoom_level);
             viewer->redraw();
         }
         catch (std::exception& ex)

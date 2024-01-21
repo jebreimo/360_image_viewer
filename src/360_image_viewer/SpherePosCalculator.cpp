@@ -127,6 +127,12 @@ SpherePosCalculator::calc_sphere_pos(const Xyz::Vector2D& screen_pos)
     return to_spherical(calc_point_on_sphere(vp, *center_pos_, screen_pos));
 }
 
+Xyz::SphericalPointD SpherePosCalculator::calc_center_sphere_pos()
+{
+    ensure_valid_center_pos();
+    return *center_pos_;
+}
+
 Xyz::Vector3D SpherePosCalculator::calc_up_vector()
 {
     ensure_valid_center_pos();

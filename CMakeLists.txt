@@ -46,6 +46,11 @@ add_executable(360_image_viewer
     src/360_image_viewer/Hud.cpp
     src/360_image_viewer/Hud.hpp)
 
+target_compile_definitions(360_image_viewer
+    PRIVATE
+        SDL_HINT_MOUSE_TOUCH_EVENTS=1
+    )
+
 target_link_libraries(360_image_viewer
     PRIVATE
         Argos::Argos
@@ -56,10 +61,10 @@ target_link_libraries(360_image_viewer
 
 tungsten_target_embed_shaders(360_image_viewer
     FILES
-    src/360_image_viewer/shaders/Render3D-frag.glsl
-    src/360_image_viewer/shaders/Render3D-vert.glsl
-    src/360_image_viewer/shaders/Unicolor3D-frag.glsl
-    src/360_image_viewer/shaders/Unicolor3D-vert.glsl
+        src/360_image_viewer/shaders/Render3D-frag.glsl
+        src/360_image_viewer/shaders/Render3D-vert.glsl
+        src/360_image_viewer/shaders/Unicolor3D-frag.glsl
+        src/360_image_viewer/shaders/Unicolor3D-vert.glsl
     )
 
 #target_embed_cpp_data(360_image_viewer

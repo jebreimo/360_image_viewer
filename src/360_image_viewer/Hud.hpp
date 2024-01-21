@@ -15,9 +15,14 @@ public:
 
     void set_angles(double azimuth, double polar);
 
+    void set_zoom(int zoom);
+
     void draw(const Xyz::Vector2F& screen_size);
+
+    bool visible = false;
 private:
     Tungsten::TextRenderer renderer_;
     double azimuth_ = {};
     double polar_ = {};
+    int zoom_ = {};
 };

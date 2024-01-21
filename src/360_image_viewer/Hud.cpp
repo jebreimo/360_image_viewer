@@ -29,10 +29,18 @@ void Hud::set_angles(double azimuth, double polar)
     polar_ = polar;
 }
 
+void Hud::set_zoom(int zoom)
+{
+    zoom_ = zoom;
+}
+
 void Hud::draw(const Xyz::Vector2F& screen_size)
 {
+    if (!visible)
+        return;
     auto text = "Azimuth: " + std::to_string(azimuth_) + "\n"
-                "Polar: " + std::to_string(polar_);
+                "Polar: " + std::to_string(polar_) + "\n"
+                "Zoom: " + std::to_string(zoom_);
     renderer_.draw(to_u32string(text), {-1, -1}, screen_size,
                    {.color = Yimage::Color::White});
 }
