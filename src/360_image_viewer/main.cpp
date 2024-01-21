@@ -15,14 +15,13 @@
 #include "Sphere.hpp"
 #include "SpherePosCalculator.hpp"
 #include "Debug.hpp"
-#include "HelveticaNeue32.hpp"
 
 constexpr double MAX_CENTER_POINT_AGE = 0.05;
 constexpr double MAX_SPEED = 4;
 constexpr int MAX_ZOOM_LEVEL = 33;
 
 using time_point = std::chrono::high_resolution_clock::time_point;
-using PrevPositionList = RingBuffer<std::pair<time_point, Xyz::SphericalPointD>, 4>;
+using PrevPositionList = Chorasmia::RingBuffer<std::pair<time_point, Xyz::SphericalPointD>, 4>;
 
 struct ScreenMotion
 {
@@ -86,9 +85,6 @@ public:
         auto center = to_degrees(pos_calculator_.calc_center_sphere_pos());
         hud_->set_angles(center.azimuth, center.polar);
         hud_->set_zoom(zoom_level_);
-
-        auto& fm = Tungsten::FontManager::instance();
-        fm.add_font(get_helveticaneue_32());
     }
 
     bool on_event(Tungsten::SdlApplication& app, const SDL_Event& event) override
@@ -192,7 +188,7 @@ private:
             auto center = Xyz::to_spherical(pos_calculator_.calc_center_pos());
             auto degrees = Xyz::to_degrees(center);
             hud_->set_angles(degrees.azimuth, degrees.polar);
-            prev_center_points_.push({
+            prev_center_points_.push_back({
                 std::chrono::high_resolution_clock::now(),
                 center
             });
@@ -210,7 +206,10 @@ private:
         {
             auto center = Xyz::to_spherical(pos_calculator_.calc_center_pos());
             prev_center_points_.clear();
-            prev_center_points_.push({std::chrono::high_resolution_clock::now(), center});
+            prev_center_points_.push_back({
+                std::chrono::high_resolution_clock::now(),
+                center
+            });
             is_panning_ = true;
             pos_calculator_.set_fixed_point(
                 mouse_pos_,
@@ -261,7 +260,6 @@ private:
                           const SDL_MultiGestureEvent& event)
     {
         constexpr float THRESHOLD = 0.01;
-        JEB_SHOW(event.numFingers, event.dDist, event.padding, event.type);
         if (event.numFingers == 2)
         {
             if  (event.dDist < -THRESHOLD)
@@ -331,7 +329,6 @@ private:
         auto max_speed = std::max(std::abs(azimuth_speed),
                                   std::abs(polar_speed));
 
-        JEB_SHOW(secs, azimuth_speed, polar_speed, max_speed);
         auto duration = std::chrono::duration<double>(std::sqrt(max_speed));
         auto end_time = now + duration_cast<high_resolution_clock::duration>(duration);
         return ScreenMotion{now, end_time, pos1, azimuth_speed, polar_speed};
@@ -389,7 +386,7 @@ extern "C"
     {
         try
         {
-            JEB_SHOW(file_path, azimuth, polar);
+            JEB_SHOW(file_path, azimuth, polar, zoom_level);
             auto* viewer = dynamic_cast<ImageViewer*>(the_app.event_loop());
             if (!viewer)
             {
@@ -425,9 +422,7 @@ int main(int argc, char* argv[])
             img = Yimage::read_image(img_arg.as_string());
         auto event_loop = std::make_unique<ImageViewer>(img);
         the_app = Tungsten::SdlApplication("ShowPng", std::move(event_loop));
-        #ifndef __EMSCRIPTEN__
         the_app.set_event_loop_mode(Tungsten::EventLoopMode::WAIT_FOR_EVENTS);
-        #endif
         the_app.read_command_line_options(args);
         the_app.run();
     }

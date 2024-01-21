@@ -7,7 +7,6 @@
 //****************************************************************************
 #include "SpherePosCalculator.hpp"
 #include <Xyz/Xyz.hpp>
-#include "Debug.hpp"
 
 namespace
 {

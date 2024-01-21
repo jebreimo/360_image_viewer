@@ -42,7 +42,6 @@ add_executable(360_image_viewer
     src/360_image_viewer/Sphere.cpp
     src/360_image_viewer/Sphere.hpp
     src/360_image_viewer/RingBuffer.hpp
-    src/360_image_viewer/HelveticaNeue32.hpp
     src/360_image_viewer/Hud.cpp
     src/360_image_viewer/Hud.hpp)
 
