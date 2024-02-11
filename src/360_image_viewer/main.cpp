@@ -421,7 +421,7 @@ int main(int argc, char* argv[])
         if (auto img_arg = args.value("IMAGE"))
             img = Yimage::read_image(img_arg.as_string());
         auto event_loop = std::make_unique<ImageViewer>(img);
-        the_app = Tungsten::SdlApplication("ShowPng", std::move(event_loop));
+        the_app = Tungsten::SdlApplication("360_viewer", std::move(event_loop));
         the_app.set_event_loop_mode(Tungsten::EventLoopMode::WAIT_FOR_EVENTS);
         the_app.read_command_line_options(args);
         the_app.run();
