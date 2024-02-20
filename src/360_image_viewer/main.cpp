@@ -23,6 +23,8 @@ constexpr int MAX_ZOOM_LEVEL = 33;
 using time_point = std::chrono::high_resolution_clock::time_point;
 using PrevPositionList = Chorasmia::RingBuffer<std::pair<time_point, Xyz::SphericalPointD>, 4>;
 
+void load_image(const char* file_path);
+
 struct ScreenMotion
 {
     time_point start_time = {};
@@ -103,6 +105,8 @@ public:
             return on_key_down(app, event.key);
         case SDL_MULTIGESTURE:
             return on_multi_gesture(app, event.mgesture);
+        case SDL_DROPFILE:
+            return on_drop_file(app, event.drop);
         default:
             return false;
         }
@@ -270,6 +274,15 @@ private:
         return true;
     }
 
+    bool on_drop_file(const Tungsten::SdlApplication& app,
+                      const SDL_DropEvent& event)
+    {
+        SDL_Log("Dropped file: %s", event.file);
+        load_image(event.file);
+        SDL_free(event.file);
+        return true;
+    }
+
     [[nodiscard]]
     Xyz::Matrix4F get_mv_matrix(const Tungsten::SdlApplication& app)
     {
@@ -387,6 +400,7 @@ extern "C"
         try
         {
             JEB_SHOW(file_path, azimuth, polar, zoom_level);
+            auto image = Yimage::read_image(file_path);
             auto* viewer = dynamic_cast<ImageViewer*>(the_app.event_loop());
             if (!viewer)
             {
@@ -394,7 +408,7 @@ extern "C"
                 return;
             }
             viewer->clear_redraw();
-            viewer->set_image(Yimage::read_image(file_path));
+            viewer->set_image(std::move(image));
             viewer->set_view_direction(Xyz::to_radians(azimuth),
                                        Xyz::to_radians(polar));
             viewer->set_zoom_level(zoom_level);
@@ -405,6 +419,11 @@ extern "C"
             std::cerr << ex.what() << "\n";
         }
     }
+}
+
+void load_image(const char* file_path)
+{
+    load_image(file_path, 0, 0, MAX_ZOOM_LEVEL * 4 / 5);
 }
 
 int main(int argc, char* argv[])
